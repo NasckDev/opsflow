@@ -1,59 +1,54 @@
-# Opsflow
+# OpsFlow · Enterprise Workflow & Approval Console
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.3.0.
+Console de workflow com etapas rastreáveis, permissões por papel, trilha de auditoria imutável e suporte multilíngue (pt-BR/en). Dados 100% fictícios; a API é simulada no navegador.
 
-## Development server
+## Stack
 
-To start a local development server, run:
+Angular 22 (standalone, signals, zoneless, control flow `@if/@for`), formulários reativos tipados, RxJS (busca com debounce e cancelamento via `switchMap`), Angular CDK (`LiveAnnouncer`), Vitest.
 
-```bash
-ng serve
+## Máquina de estados
+
+```mermaid
+stateDiagram-v2
+  [*] --> draft
+  draft --> in_review: submit (solicitante)
+  in_review --> returned: return (revisor, comentário obrigatório)
+  returned --> in_review: resubmit (solicitante)
+  in_review --> approved: approve (aprovador; fora do SLA exige justificativa)
+  in_review --> rejected: reject (revisor/aprovador, comentário obrigatório)
+  approved --> completed: complete (aprovador/admin)
+  rejected --> [*]
+  completed --> [*]
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Guardas: permissão do papel, estado de origem, segregação de funções (quem criou não decide) e SLA.
 
-## Code scaffolding
+## Matriz RBAC
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+| Permissão | Solicitante | Revisor | Aprovador | Auditor | Admin |
+|---|:-:|:-:|:-:|:-:|:-:|
+| request.create / submit | ✓ | | | | ✓ |
+| request.return | | ✓ | | | ✓ |
+| request.approve | | | ✓ | | ✓ |
+| request.reject | | ✓ | ✓ | | ✓ |
+| request.complete | | | ✓ | | ✓ |
+| audit.view | | ✓ | ✓ | ✓ | ✓ |
 
-```bash
-ng generate component component-name
-```
+Testada por tabela em `src/app/domain/permissions.spec.ts`.
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Migração de legado
 
-```bash
-ng generate --help
-```
+`src/app/domain/legacy-adapter.ts` converte o JSON do sistema antigo (`STATUS_CD`, datas `dd/mm/aaaa`, valores `1.234,56`) para o domínio novo, validando cada campo e registrando a migração na auditoria.
 
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Como rodar
 
 ```bash
-ng test
+npm ci
+npm start        # http://localhost:4200
+npx ng test      # testes unitários (Vitest)
+npm run build
 ```
 
-## Running end-to-end tests
+## Licença
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+MIT
