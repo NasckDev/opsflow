@@ -1,0 +1,92 @@
+<div
+  class="panel-root"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-label]="'app.profile' | t"
+  cdkTrapFocus
+  [cdkTrapFocusAutoCapture]="true"
+>
+  <header class="head">
+    <app-avatar [name]="session.actor().name" size="lg" />
+    <div class="who">
+      <strong>{{ session.actor().name }}</strong>
+      <span class="muted">{{ 'role.' + session.currentRole() | t }}</span>
+    </div>
+    <button type="button" class="btn btn-ghost btn-icon" (click)="close()" [attr.aria-label]="'app.close' | t">
+      <app-icon name="x" />
+    </button>
+  </header>
+
+  <fieldset class="group">
+    <legend>{{ 'app.profile.role' | t }}</legend>
+    <p class="hint">{{ 'app.profile.roleHint' | t }}</p>
+    <div class="options">
+      @for (role of roles; track role) {
+        <label class="option">
+          <input
+            type="radio"
+            name="demo-role"
+            class="visually-hidden"
+            [value]="role"
+            [checked]="session.currentRole() === role"
+            (change)="setRole(role)"
+          />
+          <app-avatar [name]="users[role]" size="sm" />
+          <span class="option-text">
+            <span>{{ 'role.' + role | t }}</span>
+            <small class="muted">{{ users[role] }}</small>
+          </span>
+          <app-icon class="tick" name="check" />
+        </label>
+      }
+    </div>
+  </fieldset>
+
+  <fieldset class="group">
+    <legend>{{ 'app.language' | t }}</legend>
+    <div class="segmented">
+      @for (locale of locales; track locale) {
+        <label class="segment">
+          <input
+            type="radio"
+            name="demo-locale"
+            class="visually-hidden"
+            [value]="locale"
+            [checked]="i18n.locale() === locale"
+            (change)="setLocale(locale)"
+          />
+          <span>{{ localeLabel(locale) }}</span>
+        </label>
+      }
+    </div>
+  </fieldset>
+
+  <div class="group switches">
+    <h2 class="legend">{{ 'app.profile.preferences' | t }}</h2>
+    <label class="switch-row">
+      <span class="switch-text">
+        <span>{{ 'app.theme.dark' | t }}</span>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        class="switch"
+        [checked]="theme.theme() === 'dark'"
+        (change)="theme.toggle()"
+      />
+    </label>
+    <label class="switch-row">
+      <span class="switch-text">
+        <span>{{ 'app.simulateErrors' | t }}</span>
+        <small class="muted">{{ 'app.simulateErrorsHint' | t }}</small>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        class="switch"
+        [checked]="failures()"
+        (change)="onFailures($event)"
+      />
+    </label>
+  </div>
+</div>

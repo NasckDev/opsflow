@@ -1,22 +1,35 @@
 <section class="page" aria-labelledby="wizard-title">
   <header class="page-header">
-    <h1 id="wizard-title">{{ 'wizard.title' | t }}</h1>
-    <a class="btn" routerLink="/requests">{{ 'wizard.cancel' | t }}</a>
+    <div class="titles">
+      <h1 id="wizard-title">{{ 'wizard.title' | t }}</h1>
+      <p class="muted">{{ 'wizard.subtitle' | t }}</p>
+    </div>
+    <a class="btn btn-ghost cancel" routerLink="/requests">{{ 'wizard.cancel' | t }}</a>
   </header>
 
   @if (!session.can('request.create')) {
-    <p class="state state-error" role="alert">{{ 'wizard.forbidden' | t }}</p>
+    <div class="state state-error" role="alert">
+      <h2>{{ 'wizard.forbidden' | t }}</h2>
+    </div>
   } @else {
     <ol class="stepper" [attr.aria-label]="'wizard.step' | t: { current: step() + 1, total: steps.length }">
       @for (label of steps; track label; let i = $index) {
         <li [class.active]="i === step()" [class.done]="i < step()" [attr.aria-current]="i === step() ? 'step' : null">
-          <span class="step-index" aria-hidden="true">{{ i + 1 }}</span>{{ label | t }}
+          <span class="step-index" aria-hidden="true">
+            @if (i < step()) {
+              <app-icon name="check" [size]="1" />
+            } @else {
+              {{ i + 1 }}
+            }
+          </span>
+          <span class="step-label">{{ label | t }}</span>
         </li>
       }
     </ol>
+    <div class="progress" aria-hidden="true"><span [style.width.%]="((step() + 1) / steps.length) * 100"></span></div>
 
     <form [formGroup]="form" (ngSubmit)="isLastStep() ? save(true) : next()" novalidate>
-      <div #stepPanel class="panel">
+      <div #stepPanel class="panel form-panel page-enter">
         @if (errorCount() > 0) {
           <p class="error-summary" role="alert">{{ 'wizard.errorsSummary' | t: { count: errorCount() } }}</p>
         }
@@ -84,38 +97,46 @@
               </div>
               <div class="field">
                 <label for="documents">{{ 'wizard.field.documents' | t }}</label>
-                <textarea id="documents" formControlName="documents" rows="4" placeholder="orcamento.pdf"></textarea>
+                <textarea id="documents" formControlName="documents" rows="4" placeholder="orcamento.pdf" aria-describedby="documents-hint"></textarea>
+                <p id="documents-hint" class="hint">{{ 'wizard.docsHint' | t }}</p>
               </div>
             </fieldset>
           }
           @case (2) {
             <h2 tabindex="-1">{{ 'wizard.step.review' | t }}</h2>
+            <p class="muted">{{ 'wizard.reviewHint' | t }}</p>
             @let summary = review();
-            <dl class="summary" data-testid="wizard-summary">
-              <dt>{{ 'wizard.field.title' | t }}</dt><dd>{{ summary.title }}</dd>
-              <dt>{{ 'wizard.field.category' | t }}</dt><dd>{{ 'category.' + summary.category | t }}</dd>
-              <dt>{{ 'wizard.field.priority' | t }}</dt><dd>{{ 'priority.' + summary.priority | t }}</dd>
-              <dt>{{ 'wizard.field.amount' | t }}</dt><dd>{{ summary.amount | money }}</dd>
-              <dt>{{ 'wizard.field.dueAt' | t }}</dt><dd>{{ summary.dueAt | localDate }}</dd>
-              <dt>{{ 'detail.documents' | t }}</dt>
-              <dd>{{ documents().length ? documents().join(', ') : ('detail.noDocuments' | t) }}</dd>
-            </dl>
+            <div class="summary-card" data-testid="wizard-summary">
+              <p class="summary-kicker">{{ 'wizard.summary' | t }}</p>
+              <p class="summary-title">{{ summary.title }}</p>
+              <p class="summary-amount num">{{ summary.amount | money }}</p>
+              <dl class="summary">
+                <div><dt>{{ 'wizard.field.category' | t }}</dt><dd>{{ 'category.' + summary.category | t }}</dd></div>
+                <div><dt>{{ 'wizard.field.priority' | t }}</dt><dd>{{ 'priority.' + summary.priority | t }}</dd></div>
+                <div><dt>{{ 'wizard.field.dueAt' | t }}</dt><dd>{{ summary.dueAt | localDate }}</dd></div>
+                <div>
+                  <dt>{{ 'detail.documents' | t }}</dt>
+                  <dd>{{ documents().length ? documents().join(', ') : ('detail.noDocuments' | t) }}</dd>
+                </div>
+              </dl>
+            </div>
             @if (saveError()) {
-              <p class="state state-error" role="alert">{{ 'wizard.saveError' | t }}</p>
+              <p class="error-summary" role="alert">{{ 'wizard.saveError' | t }}</p>
             }
           }
         }
       </div>
 
-      <div class="actions">
+      <div class="wizard-footer">
         @if (step() > 0) {
-          <button type="button" class="btn" (click)="back()">{{ 'wizard.back' | t }}</button>
+          <button type="button" class="btn" (click)="back()"><app-icon name="arrowLeft" /><span class="back-label">{{ 'wizard.back' | t }}</span></button>
         }
+        <span class="spacer"></span>
         @if (isLastStep()) {
           <button type="button" class="btn" [disabled]="saving()" (click)="save(false)">{{ 'wizard.saveDraft' | t }}</button>
-          <button type="submit" class="btn btn-primary" [disabled]="saving()">{{ 'wizard.submit' | t }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="saving()"><app-icon name="send" />{{ 'wizard.submit' | t }}</button>
         } @else {
-          <button type="submit" class="btn btn-primary">{{ 'wizard.next' | t }}</button>
+          <button type="submit" class="btn btn-primary">{{ 'wizard.next' | t }}<app-icon name="arrowRight" /></button>
         }
       </div>
     </form>

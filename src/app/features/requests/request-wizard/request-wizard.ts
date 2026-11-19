@@ -18,6 +18,7 @@ import { LocalDatePipe, MoneyPipe } from '../../../core/i18n/format.pipes';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { SessionStore } from '../../../core/session/session.store';
+import { Icon } from '../../../shared/icon';
 import { CATEGORIES, PRIORITIES } from '../../../domain/request.model';
 import {
   FieldError,
@@ -31,7 +32,7 @@ const STEPS = ['wizard.step.details', 'wizard.step.deadline', 'wizard.step.revie
 
 @Component({
   selector: 'app-request-wizard',
-  imports: [ReactiveFormsModule, RouterLink, TranslatePipe, MoneyPipe, LocalDatePipe],
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe, MoneyPipe, LocalDatePipe, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './request-wizard.html',
   styleUrl: './request-wizard.scss',

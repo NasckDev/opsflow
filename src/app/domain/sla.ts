@@ -27,3 +27,27 @@ export function evaluateSla(
   }
   return { state: 'on_track', hoursRemaining };
 }
+
+/**
+ * Fração do prazo já consumida (0 a 1): do `createdAt` até o `dueAt`.
+ * Solicitações encerradas contam como 1; prazo inválido ou zerado também.
+ */
+export function slaElapsedRatio(
+  request: Pick<WorkflowRequest, 'createdAt' | 'dueAt' | 'status'>,
+  now: Date,
+): number {
+  if (CLOSED_STATUSES.includes(request.status)) return 1;
+  const start = Date.parse(request.createdAt);
+  const total = Date.parse(request.dueAt) - start;
+  if (!Number.isFinite(total) || total <= 0) return 1;
+  return Math.min(1, Math.max(0, (now.getTime() - start) / total));
+}
+
+/** Formata horas como "5h" ou "3d 4h" (unidades universais, sem tradução). */
+export function formatHours(hours: number): string {
+  const total = Math.max(0, Math.round(hours));
+  if (total < 24) return `${total}h`;
+  const days = Math.floor(total / 24);
+  const rest = total % 24;
+  return rest === 0 ? `${days}d` : `${days}d ${rest}h`;
+}

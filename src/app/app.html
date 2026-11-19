@@ -1,43 +1,103 @@
-<a class="skip-link" href="#main" (click)="$event.preventDefault(); main.focus()">{{ 'app.skip' | t }}</a>
+<a class="skip-link" href="#main" (click)="focusMain($event, main)">{{ 'app.skip' | t }}</a>
 
-<header class="topbar">
-  <a class="brand" routerLink="/requests">
-    <span class="logo" aria-hidden="true">⟳</span>
-    <span>
-      <strong>OpsFlow</strong>
-      <small>{{ 'app.tagline' | t }}</small>
-    </span>
-  </a>
+<div class="demo-banner" role="note">
+  <span class="demo-dot" aria-hidden="true"></span>
+  <strong>{{ 'app.demo' | t }}</strong>
+  <span class="demo-hint">{{ 'app.demoHint' | t }}</span>
+</div>
 
-  <div class="controls">
-    <div class="control">
-      <label for="role-select">{{ 'app.role' | t }}</label>
-      <select id="role-select" [value]="session.currentRole()" (change)="onRole($event)">
-        @for (role of roles; track role) {
-          <option [value]="role">{{ 'role.' + role | t }}</option>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" routerLink="/requests">
+      <app-logo />
+      <span class="brand-text">
+        <strong>OpsFlow</strong>
+        <small>{{ 'app.tagline' | t }}</small>
+      </span>
+    </a>
+
+    <nav [attr.aria-label]="'app.nav.main' | t">
+      <p class="nav-label">{{ 'app.nav.workspace' | t }}</p>
+      <a class="nav-item" routerLink="/requests" [class.active]="onList()" [attr.aria-current]="onList() ? 'page' : null">
+        <app-icon name="list" />{{ 'app.nav.requests' | t }}
+      </a>
+      @if (session.can('request.create')) {
+        <a class="nav-item" routerLink="/requests/new" [class.active]="onNew()" [attr.aria-current]="onNew() ? 'page' : null">
+          <app-icon name="plusCircle" />{{ 'app.nav.new' | t }}
+        </a>
+      }
+    </nav>
+
+    <p class="sidebar-foot">{{ 'app.footer' | t }}</p>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <a class="brand brand-mobile" routerLink="/requests" [attr.aria-label]="'OpsFlow'">
+        <app-logo />
+        <strong>OpsFlow</strong>
+      </a>
+
+      <div class="search">
+        <app-icon name="search" />
+        <input
+          type="search"
+          [attr.aria-label]="'app.search' | t"
+          [placeholder]="'app.searchPlaceholder' | t"
+          [value]="search.query()"
+          (input)="onSearch($event)"
+        />
+        @if (search.query()) {
+          <button type="button" class="clear" (click)="clearSearch()" [attr.aria-label]="'list.clear' | t">
+            <app-icon name="x" [size]="0.875" />
+          </button>
         }
-      </select>
-    </div>
-    <div class="control">
-      <label for="locale-select">{{ 'app.language' | t }}</label>
-      <select id="locale-select" [value]="i18n.locale()" (change)="onLocale($event)">
-        @for (locale of locales; track locale) {
-          <option [value]="locale">{{ locale === 'en' ? 'English' : 'Português' }}</option>
-        }
-      </select>
-    </div>
-    <button type="button" class="btn btn-icon" [attr.aria-pressed]="theme.theme() === 'dark'" (click)="theme.toggle()">
-      <span aria-hidden="true">{{ theme.theme() === 'dark' ? '☀' : '☾' }}</span>
-      {{ 'app.theme.dark' | t }}
-    </button>
-    <label class="toggle">
-      <input type="checkbox" [checked]="backend.failuresEnabled()" (change)="onFailures($event)" />
-      {{ 'app.simulateErrors' | t }}
-    </label>
+      </div>
+
+      <button
+        type="button"
+        class="profile-trigger"
+        aria-haspopup="dialog"
+        [attr.aria-expanded]="profile.isOpen()"
+        [attr.aria-label]="('app.profile' | t) + ': ' + session.actor().name"
+        (click)="toggleProfile($event)"
+      >
+        <app-avatar [name]="session.actor().name" />
+        <span class="profile-text">
+          <strong>{{ session.actor().name }}</strong>
+          <small>{{ 'role.' + session.currentRole() | t }}</small>
+        </span>
+        <app-icon class="chev" name="chevronDown" [size]="1" />
+      </button>
+      <span class="role-pill"><app-icon name="user" [size]="0.875" />{{ 'role.' + session.currentRole() | t }}</span>
+    </header>
+
+    <main id="main" #main tabindex="-1">
+      <router-outlet />
+    </main>
   </div>
-  <p class="acting-as">{{ 'app.actingAs' | t: { name: session.actor().name } }}</p>
-</header>
 
-<main id="main" #main tabindex="-1">
-  <router-outlet />
-</main>
+  <nav class="bottomnav" [attr.aria-label]="'app.nav.main' | t">
+    <a class="tab" routerLink="/requests" [class.active]="onList()" [attr.aria-current]="onList() ? 'page' : null">
+      <app-icon name="list" [size]="1.375" />
+      <span>{{ 'app.nav.requests' | t }}</span>
+    </a>
+    @if (session.can('request.create')) {
+      <a class="tab" routerLink="/requests/new" [class.active]="onNew()" [attr.aria-current]="onNew() ? 'page' : null">
+        <app-icon name="plusCircle" [size]="1.375" />
+        <span>{{ 'app.nav.new' | t }}</span>
+      </a>
+    }
+    <button
+      type="button"
+      class="tab"
+      aria-haspopup="dialog"
+      [class.active]="profile.isOpen()"
+      [attr.aria-expanded]="profile.isOpen()"
+      (click)="toggleProfile($event)"
+    >
+      <app-avatar [name]="session.actor().name" size="sm" />
+      <span>{{ 'app.nav.profile' | t }}</span>
+    </button>
+  </nav>
+</div>

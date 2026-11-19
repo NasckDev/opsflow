@@ -1,73 +1,147 @@
 <section class="page" aria-labelledby="list-title">
   <header class="page-header">
-    <h1 id="list-title" tabindex="-1">{{ 'list.title' | t }}</h1>
+    <div class="titles">
+      <h1 id="list-title" tabindex="-1">{{ 'list.title' | t }}</h1>
+      <p class="muted">{{ 'list.subtitle' | t }}</p>
+    </div>
     @if (session.can('request.create')) {
-      <a class="btn btn-primary" routerLink="/requests/new">{{ 'list.new' | t }}</a>
+      <a class="btn btn-primary new-desktop" routerLink="/requests/new">
+        <app-icon name="plus" />{{ 'list.new' | t }}
+      </a>
     }
   </header>
 
-  <form class="filters" role="search" (submit)="$event.preventDefault()">
-    <div class="field">
-      <label for="search">{{ 'list.search' | t }}</label>
-      <input id="search" type="search" [value]="query()" (input)="onQuery($event)" />
+  <div class="toolbar">
+    <div class="search-mobile">
+      <app-icon name="search" />
+      <input
+        type="search"
+        [attr.aria-label]="'app.search' | t"
+        [placeholder]="'app.searchPlaceholder' | t"
+        [value]="search.query()"
+        (input)="onQuery($event)"
+      />
     </div>
-    <div class="field">
-      <label for="status-filter">{{ 'list.status' | t }}</label>
-      <select id="status-filter" [value]="status()" (change)="onStatus($event)">
-        <option value="">{{ 'status.all' | t }}</option>
-        @for (item of statuses; track item) {
-          <option [value]="item">{{ 'status.' + item | t }}</option>
-        }
-      </select>
+    <div class="chips" role="group" [attr.aria-label]="'list.filter' | t">
+      <button type="button" class="filter" [attr.aria-pressed]="status() === ''" (click)="setStatus('')">
+        {{ 'list.allShort' | t }}<span class="count">{{ counts().all }}</span>
+      </button>
+      @for (item of statuses; track item) {
+        <button type="button" class="filter" [attr.aria-pressed]="status() === item" (click)="setStatus(item)">
+          {{ 'status.' + item | t }}<span class="count">{{ counts()[item] }}</span>
+        </button>
+      }
     </div>
-  </form>
+  </div>
 
   <div aria-live="polite" class="results">
-    @switch (state().kind) {
+    @let current = state();
+    @switch (current.kind) {
       @case ('loading') {
-        <p class="state" role="status">
-          <span class="spinner" aria-hidden="true"></span>{{ 'list.loading' | t }}
-        </p>
+        <div role="status" class="skeletons">
+          <span class="visually-hidden">{{ 'list.loading' | t }}</span>
+          @for (row of skeletonRows; track row) {
+            <div class="skeleton-row" aria-hidden="true">
+              <span class="skeleton" style="width: 4.5rem"></span>
+              <span class="skeleton" style="width: 60%"></span>
+              <span class="skeleton skeleton-hide-sm" style="width: 70%"></span>
+              <span class="skeleton skeleton-pill"></span>
+              <span class="skeleton skeleton-hide-sm" style="width: 60%"></span>
+            </div>
+          }
+        </div>
       }
       @case ('error') {
         <div class="state state-error" role="alert">
-          <p>{{ 'list.error' | t }}</p>
-          <button type="button" class="btn" (click)="retry()">{{ 'list.retry' | t }}</button>
+          <svg class="illustration" viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="14" y="14" width="92" height="62" rx="8" />
+            <path d="M14 30h92" />
+            <circle cx="24" cy="22" r="1.5" />
+            <circle cx="31" cy="22" r="1.5" />
+            <path d="M60 44v12M60 64h.01" stroke-width="3" />
+          </svg>
+          <h2>{{ 'list.error.title' | t }}</h2>
+          <p>{{ 'list.error.hint' | t }}</p>
+          <button type="button" class="btn btn-primary" (click)="retry()">
+            <app-icon name="refresh" />{{ 'list.retry' | t }}
+          </button>
         </div>
       }
-    }
-    @let current = state();
-    @if (current.kind === 'loaded') {
-      @if (current.items.length === 0) {
-        <p class="state">{{ 'list.empty' | t }}</p>
-      } @else {
-        <p class="count">{{ 'list.count' | t: { count: current.items.length } }}</p>
-        <ul class="cards" data-testid="request-list">
-          @for (request of current.items; track request.id) {
-            <li class="card">
-              <div class="card-top">
-                <span class="code">{{ request.code }}</span>
-                <app-status-badge [status]="request.status" />
-              </div>
-              <a class="card-title" [routerLink]="['/requests', request.id]">{{ request.title }}</a>
-              <dl class="meta">
-                <div>
-                  <dt>{{ 'list.requester' | t }}</dt>
-                  <dd>{{ request.requester }}</dd>
-                </div>
-                <div>
-                  <dt>{{ 'list.amount' | t }}</dt>
-                  <dd>{{ request.amount | money }}</dd>
-                </div>
-                <div>
-                  <dt>{{ 'list.due' | t }}</dt>
-                  <dd>{{ request.dueAt | localDate }}</dd>
-                </div>
-              </dl>
-              <app-sla-badge [request]="request" />
-            </li>
-          }
-        </ul>
+      @case ('loaded') {
+        @if (visible().length === 0) {
+          <div class="state">
+            <svg class="illustration" viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 54h26l6 10h20l6-10h26" />
+              <path d="M24 54 34 24h52l10 30v22a6 6 0 0 1-6 6H30a6 6 0 0 1-6-6z" />
+              <path d="M46 40h28M50 48h20" opacity=".6" />
+            </svg>
+            <h2>{{ 'list.empty.title' | t }}</h2>
+            <p>{{ 'list.empty.hint' | t }}</p>
+            @if (hasFilters()) {
+              <button type="button" class="btn" (click)="clearFilters()">{{ 'list.clear' | t }}</button>
+            } @else if (session.can('request.create')) {
+              <a class="btn btn-primary" routerLink="/requests/new"><app-icon name="plus" />{{ 'list.new' | t }}</a>
+            }
+          </div>
+        } @else {
+          <p class="visually-hidden" role="status">{{ 'list.count' | t: { count: visible().length } }}</p>
+
+          <div class="table-wrap card">
+            <table data-testid="request-list">
+              <thead>
+                <tr>
+                  @for (column of columns; track column.key) {
+                    <th scope="col" [attr.aria-sort]="ariaSort(column.key)" [class.end]="column.align === 'end'">
+                      <button type="button" class="sort" [attr.aria-label]="'list.sortBy' | t: { column: (column.label | t) }" (click)="onSort(column.key)">
+                        {{ column.label | t }}<app-icon [name]="sortIcon(column.key)" [size]="0.875" />
+                      </button>
+                    </th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (request of visible(); track request.id) {
+                  <tr>
+                    <td class="mono code">{{ request.code }}</td>
+                    <td class="title-cell">
+                      <a class="row-link" [routerLink]="['/requests', request.id]">{{ request.title }}</a>
+                      <span class="muted sub">{{ 'category.' + request.category | t }}</span>
+                    </td>
+                    <td>
+                      <span class="person"><app-avatar [name]="request.requester" size="sm" />{{ request.requester }}</span>
+                    </td>
+                    <td><app-status-badge [status]="request.status" /></td>
+                    <td><app-priority [priority]="request.priority" /></td>
+                    <td class="end num">{{ request.amount | money }}</td>
+                    <td><app-sla-meter [request]="request" /></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <ul class="cards">
+            @for (request of visible(); track request.id) {
+              <li>
+                <a class="req-card card" [routerLink]="['/requests', request.id]">
+                  <span class="req-top">
+                    <span class="mono muted">{{ request.code }}</span>
+                    <app-status-badge [status]="request.status" />
+                  </span>
+                  <strong class="req-title">{{ request.title }}</strong>
+                  <span class="req-meta">
+                    <span class="person"><app-avatar [name]="request.requester" size="sm" />{{ request.requester }}</span>
+                    <span class="num amount">{{ request.amount | money }}</span>
+                  </span>
+                  <span class="req-foot">
+                    <app-priority [priority]="request.priority" />
+                    <app-sla-meter [request]="request" />
+                  </span>
+                </a>
+              </li>
+            }
+          </ul>
+        }
       }
     }
   </div>

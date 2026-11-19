@@ -26,9 +26,11 @@ import { LocalDatePipe, MoneyPipe } from '../../../core/i18n/format.pipes';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { SessionStore } from '../../../core/session/session.store';
-import { WorkflowAction, WorkflowRequest } from '../../../domain/request.model';
+import { AuditAction, WorkflowAction, WorkflowRequest } from '../../../domain/request.model';
 import { availableActions, checkTransition } from '../../../domain/workflow-machine';
-import { SlaBadge, StatusBadge } from '../../../shared/badges';
+import { Avatar } from '../../../shared/avatar';
+import { PriorityBadge, SlaMeter, StatusBadge } from '../../../shared/badges';
+import { Icon, IconName } from '../../../shared/icon';
 
 type DetailState =
   | { readonly kind: 'loading' }
@@ -38,9 +40,39 @@ type DetailState =
 
 const LOADING: DetailState = { kind: 'loading' };
 
+export const ACTION_ICONS: Readonly<Record<AuditAction, IconName>> = {
+  create: 'plusCircle',
+  migrate: 'history',
+  submit: 'send',
+  resubmit: 'send',
+  return: 'undo',
+  approve: 'checkCircle',
+  reject: 'xCircle',
+  complete: 'check',
+};
+
+const BUTTON_CLASSES: Readonly<Record<WorkflowAction, string>> = {
+  submit: 'btn-primary',
+  resubmit: 'btn-primary',
+  complete: 'btn-primary',
+  approve: 'btn-success',
+  reject: 'btn-danger',
+  return: '',
+};
+
 @Component({
   selector: 'app-request-detail',
-  imports: [RouterLink, TranslatePipe, LocalDatePipe, MoneyPipe, StatusBadge, SlaBadge],
+  imports: [
+    RouterLink,
+    TranslatePipe,
+    LocalDatePipe,
+    MoneyPipe,
+    StatusBadge,
+    PriorityBadge,
+    SlaMeter,
+    Avatar,
+    Icon,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './request-detail.html',
   styleUrl: './request-detail.scss',
@@ -74,6 +106,12 @@ export class RequestDetail {
     const state = this.state();
     return state.kind === 'loaded' ? availableActions(state.request, this.session.actor()) : [];
   });
+
+  protected readonly actionIcons = ACTION_ICONS;
+
+  protected buttonClass(action: WorkflowAction): string {
+    return BUTTON_CLASSES[action];
+  }
 
   protected onComment(event: Event): void {
     this.comment.set((event.target as HTMLTextAreaElement).value);

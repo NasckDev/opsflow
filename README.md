@@ -4,11 +4,13 @@ Console de workflow com etapas rastreáveis, permissões por papel, trilha de au
 
 ## Telas
 
-Capturas em desktop (1440x900) e celular (390x844), com os dados fictícios de exemplo.
+Console com sidebar, barra superior com busca e menu de perfil de demonstração (papel, idioma, tema e falhas simuladas da API). No celular, a navegação vira barra inferior e a tabela vira lista de cards. Capturas em desktop (1440x900) e celular (390x844), com os dados fictícios de exemplo.
 
-![Lista de solicitações com status e SLA](docs/prints/opsflow-lista-solicitacoes-desktop.webp)
+![Lista de solicitações com status, prioridade e SLA](docs/prints/opsflow-lista-solicitacoes-desktop.webp)
 
-![Detalhe de uma solicitação aprovada com a linha do tempo de auditoria](docs/prints/opsflow-detalhe-auditoria-desktop.webp)
+![Lista de solicitações no tema escuro](docs/prints/opsflow-lista-escuro-desktop.webp)
+
+![Detalhe de uma solicitação aprovada, com decisão contextual e linha do tempo de auditoria](docs/prints/opsflow-detalhe-auditoria-desktop.webp)
 
 ![Wizard de nova solicitação, etapa de detalhes](docs/prints/opsflow-wizard-detalhes-desktop.webp)
 
@@ -16,9 +18,13 @@ Capturas em desktop (1440x900) e celular (390x844), com os dados fictícios de e
 
 <img src="docs/prints/opsflow-lista-solicitacoes-mobile.webp" alt="Lista de solicitações no celular" width="260"> <img src="docs/prints/opsflow-detalhe-auditoria-mobile.webp" alt="Detalhe com auditoria no celular" width="260">
 
+## Design
+
+O visual usa os tokens do design system Nasck UI (cores, espaçamento, raio, sombra, tipografia e movimento), copiados sem alteração para `src/styles/tokens.css` (origem e commit no cabeçalho do arquivo). O que o Nasck UI ainda não define (medidas do shell, aliases de superfície por tema) fica em `src/styles/base.scss`, com prefixo `--ox-`. Tema claro e escuro, foco visível, contraste AA, link de pular para o conteúdo e `prefers-reduced-motion` respeitado.
+
 ## Stack
 
-Angular 22 (standalone, signals, zoneless, control flow `@if/@for`), formulários reativos tipados, RxJS (busca com debounce e cancelamento via `switchMap`), Angular CDK (`LiveAnnouncer`), Vitest.
+Angular 22 (standalone, signals, zoneless, control flow `@if/@for`), formulários reativos tipados, RxJS (busca com debounce e cancelamento via `switchMap`), Angular CDK (`LiveAnnouncer`, `Overlay`, `TrapFocus`), Vitest.
 
 ## Máquina de estados
 

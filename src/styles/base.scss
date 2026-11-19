@@ -1,0 +1,127 @@
+/*
+ * Base do OpsFlow, construída sobre os tokens do Nasck UI (tokens.css).
+ * Extensões locais (--ox-*): o que o Nasck UI ainda não define, como medidas
+ * do shell do console e aliases de superfície por tema.
+ */
+:root {
+  --ox-sidebar-w: 15rem;
+  --ox-topbar-h: 3.5rem;
+  --ox-bottomnav-h: 3.75rem;
+  --ox-banner-h: 1.75rem;
+  --ox-tap: 2.75rem;
+  --ox-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ox-safe-top: env(safe-area-inset-top, 0px);
+  --ox-font-size-2xs: 0.6875rem;
+  --ox-hover: color-mix(in srgb, var(--nui-color-text) 5%, transparent);
+  --ox-hairline: color-mix(in srgb, var(--nui-color-border) 65%, transparent);
+  --ox-ease: var(--nui-motion-easing-standard);
+  --ox-page: var(--nui-color-surface);
+  --ox-card: var(--nui-color-surface-raised);
+  --ox-sidebar: var(--nui-color-surface-raised);
+  --ox-neutral-surface: color-mix(in srgb, var(--nui-color-text) 7%, transparent);
+}
+
+:root[data-theme='dark'] {
+  --ox-page: var(--nui-color-bg);
+  --ox-card: var(--nui-color-surface);
+  --ox-sidebar: var(--nui-color-bg);
+  --ox-neutral-surface: color-mix(in srgb, var(--nui-color-text) 10%, transparent);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--nui-font-family-sans);
+  font-size: var(--nui-font-size-sm);
+  line-height: var(--nui-font-line-height-normal);
+  background: var(--ox-page);
+  color: var(--nui-color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: var(--nui-font-size-xl);
+  font-weight: var(--nui-font-weight-semibold);
+  line-height: var(--nui-font-line-height-tight);
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: var(--nui-font-size-md);
+  font-weight: var(--nui-font-weight-semibold);
+  line-height: var(--nui-font-line-height-tight);
+}
+
+a {
+  color: var(--nui-color-accent);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--nui-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+input[type='search']::-webkit-search-cancel-button {
+  display: none;
+}
+
+.mono {
+  font-family: var(--nui-font-family-mono);
+  font-size: 0.8125rem;
+  letter-spacing: -0.01em;
+}
+
+.muted {
+  color: var(--nui-color-text-muted);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 959px) {
+  body {
+    font-size: 0.9375rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

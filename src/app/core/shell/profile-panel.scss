@@ -1,0 +1,215 @@
+:host {
+  display: block;
+}
+
+.panel-root {
+  display: grid;
+  gap: var(--nui-space-4);
+  width: min(22rem, 100vw);
+  max-height: min(80vh, 40rem);
+  overflow-y: auto;
+  padding: var(--nui-space-4);
+  background: var(--ox-card);
+  color: var(--nui-color-text);
+  border: 1px solid var(--nui-color-border);
+  border-radius: var(--nui-radius-lg);
+  box-shadow: var(--nui-shadow-lg);
+  animation: pop var(--nui-motion-duration-normal) var(--ox-ease);
+}
+
+:host-context(.profile-sheet) .panel-root {
+  width: 100vw;
+  max-height: 85vh;
+  border-radius: var(--nui-radius-lg) var(--nui-radius-lg) 0 0;
+  border-bottom: 0;
+  padding-bottom: calc(var(--nui-space-4) + var(--ox-safe-bottom));
+  animation-name: sheet;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+@keyframes sheet {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--nui-space-3);
+}
+
+.who {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.group {
+  display: grid;
+  gap: var(--nui-space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+legend,
+.legend {
+  padding: 0;
+  font-size: var(--ox-font-size-2xs);
+  font-weight: var(--nui-font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--nui-color-text-muted);
+}
+
+.options {
+  display: grid;
+  gap: 2px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--nui-space-3);
+  min-height: var(--ox-tap);
+  padding: 0 var(--nui-space-3);
+  border-radius: var(--nui-radius-md);
+  cursor: pointer;
+  transition: background-color var(--nui-motion-duration-fast) var(--ox-ease);
+
+  &:hover {
+    background: var(--ox-hover);
+  }
+
+  &:has(input:checked) {
+    background: var(--nui-color-accent-surface);
+  }
+
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--nui-color-focus-ring);
+    outline-offset: -2px;
+  }
+
+  .tick {
+    margin-left: auto;
+    color: var(--nui-color-accent);
+    opacity: 0;
+  }
+
+  &:has(input:checked) .tick {
+    opacity: 1;
+  }
+}
+
+.option-text {
+  display: grid;
+  line-height: 1.25;
+
+  small {
+    font-size: var(--nui-font-size-xs);
+  }
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 2px;
+  background: var(--ox-neutral-surface);
+  border-radius: var(--nui-radius-md);
+}
+
+.segment {
+  display: grid;
+  place-items: center;
+  min-height: 2.25rem;
+  border-radius: 6px;
+  font-weight: var(--nui-font-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--nui-motion-duration-fast) var(--ox-ease),
+    box-shadow var(--nui-motion-duration-fast) var(--ox-ease);
+
+  &:has(input:checked) {
+    background: var(--ox-card);
+    box-shadow: var(--nui-shadow-sm);
+  }
+
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--nui-color-focus-ring);
+    outline-offset: 1px;
+  }
+}
+
+.switches {
+  gap: var(--nui-space-1);
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nui-space-4);
+  min-height: var(--ox-tap);
+  padding: var(--nui-space-1) var(--nui-space-3);
+  border-radius: var(--nui-radius-md);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--ox-hover);
+  }
+}
+
+.switch-text {
+  display: grid;
+  line-height: 1.3;
+
+  small {
+    font-size: var(--nui-font-size-xs);
+  }
+}
+
+.switch {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 2.25rem;
+  height: 1.25rem;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nui-radius-full);
+  background: var(--nui-color-border-strong);
+  cursor: pointer;
+  transition: background-color var(--nui-motion-duration-normal) var(--ox-ease);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: var(--nui-shadow-sm);
+    transition: transform var(--nui-motion-duration-normal) var(--ox-ease);
+  }
+
+  &:checked {
+    background: var(--nui-color-accent);
+  }
+
+  &:checked::after {
+    transform: translateX(1rem);
+  }
+}

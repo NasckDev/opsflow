@@ -1,99 +1,168 @@
 <section class="page">
-  <a class="back" routerLink="/requests">← {{ 'detail.back' | t }}</a>
-
   @let current = state();
+  <nav class="crumbs" [attr.aria-label]="'detail.back' | t">
+    <a routerLink="/requests"><app-icon name="arrowLeft" [size]="1" />{{ 'detail.crumb' | t }}</a>
+    @if (current.kind === 'loaded') {
+      <app-icon name="chevronRight" [size]="0.875" />
+      <span class="mono">{{ current.request.code }}</span>
+    }
+  </nav>
+
   @switch (current.kind) {
     @case ('loading') {
-      <p class="state" role="status"><span class="spinner" aria-hidden="true"></span>{{ 'list.loading' | t }}</p>
+      <div role="status" class="loading">
+        <span class="visually-hidden">{{ 'list.loading' | t }}</span>
+        <div class="card skeleton-head" aria-hidden="true">
+          <span class="skeleton" style="width: 6rem"></span>
+          <span class="skeleton" style="width: 55%; height: 1.5rem"></span>
+          <span class="skeleton" style="width: 35%"></span>
+        </div>
+        <div class="card skeleton-body" aria-hidden="true"></div>
+      </div>
     }
     @case ('not_found') {
-      <p class="state" role="alert">{{ 'detail.notFound' | t }}</p>
+      <div class="state" role="alert">
+        <h2>{{ 'detail.notFound' | t }}</h2>
+        <a class="btn" routerLink="/requests"><app-icon name="arrowLeft" />{{ 'detail.back' | t }}</a>
+      </div>
     }
     @case ('error') {
       <div class="state state-error" role="alert">
-        <p>{{ 'list.error' | t }}</p>
-        <button type="button" class="btn" (click)="retry()">{{ 'list.retry' | t }}</button>
+        <h2>{{ 'list.error.title' | t }}</h2>
+        <p>{{ 'list.error.hint' | t }}</p>
+        <button type="button" class="btn btn-primary" (click)="retry()"><app-icon name="refresh" />{{ 'list.retry' | t }}</button>
       </div>
     }
   }
 
   @if (current.kind === 'loaded') {
     @let request = current.request;
-    <header class="page-header">
-      <div>
-        <p class="code">{{ request.code }}</p>
+    <header class="head card page-enter">
+      <div class="head-main">
+        <p class="eyebrow">
+          <span class="mono">{{ request.code }}</span>
+          <span class="chip chip-plain">{{ 'category.' + request.category | t }}</span>
+        </p>
         <h1>{{ request.title }}</h1>
+        <p class="byline muted">
+          <app-avatar [name]="request.requester" size="sm" />
+          <span>{{ request.requester }}</span>
+          <span>{{ 'detail.createdAt' | t }} <time [attr.datetime]="request.createdAt">{{ request.createdAt | localDate }}</time></span>
+        </p>
       </div>
-      <div class="badges">
-        <app-status-badge [status]="request.status" />
-        <app-sla-badge [request]="request" />
-      </div>
+      <dl class="head-side">
+        <div>
+          <dt>{{ 'list.col.status' | t }}</dt>
+          <dd><app-status-badge [status]="request.status" [large]="true" /></dd>
+        </div>
+        <div>
+          <dt>{{ 'detail.sla' | t }}</dt>
+          <dd><app-sla-meter [request]="request" [large]="true" /></dd>
+        </div>
+      </dl>
     </header>
 
-    <div class="layout">
-      <div class="column">
-        <section class="panel" aria-labelledby="info-title">
-          <h2 id="info-title" class="visually-hidden">{{ request.code }}</h2>
-          @if (request.description) {
-            <p>{{ request.description }}</p>
-          }
-          <dl class="summary">
-            <dt>{{ 'list.requester' | t }}</dt><dd>{{ request.requester }}</dd>
-            <dt>{{ 'wizard.field.category' | t }}</dt><dd>{{ 'category.' + request.category | t }}</dd>
-            <dt>{{ 'wizard.field.priority' | t }}</dt><dd>{{ 'priority.' + request.priority | t }}</dd>
-            <dt>{{ 'list.amount' | t }}</dt><dd>{{ request.amount | money }}</dd>
-            <dt>{{ 'list.due' | t }}</dt><dd>{{ request.dueAt | localDate }}</dd>
-            <dt>{{ 'detail.documents' | t }}</dt>
-            <dd>{{ request.documents.length ? request.documents.join(', ') : ('detail.noDocuments' | t) }}</dd>
-          </dl>
-        </section>
-
-        <section class="panel" aria-labelledby="actions-title">
-          <h2 id="actions-title">{{ 'detail.actions' | t }}</h2>
-          @if (actions().length === 0) {
-            <p class="muted">{{ 'detail.noActions' | t }}</p>
-          } @else {
-            <div class="field">
-              <label for="comment">{{ 'detail.comment' | t }}</label>
-              <textarea #commentField id="comment" rows="3" [value]="comment()" (input)="onComment($event)"
-                aria-describedby="comment-hint" [attr.aria-invalid]="actionError() ? 'true' : null"></textarea>
-              <p id="comment-hint" class="hint">{{ 'detail.commentHint' | t }}</p>
-            </div>
+    @if (actions().length > 0) {
+      <section class="decision card" aria-labelledby="actions-title">
+        <div class="decision-text">
+          <h2 id="actions-title">{{ 'detail.decision' | t }}</h2>
+          <div class="field">
+            <label for="comment">{{ 'detail.comment' | t }}</label>
+            <textarea
+              #commentField
+              id="comment"
+              rows="2"
+              [value]="comment()"
+              (input)="onComment($event)"
+              aria-describedby="comment-hint"
+              [attr.aria-invalid]="actionError() ? 'true' : null"
+            ></textarea>
+            <p id="comment-hint" class="hint">{{ 'detail.commentHint' | t }}</p>
             @if (actionError(); as message) {
               <p class="field-error" role="alert">{{ message }}</p>
             }
-            <div class="actions">
-              @for (action of actions(); track action) {
-                <button type="button" class="btn" [class.btn-primary]="action === 'approve' || action === 'submit' || action === 'resubmit'"
-                  [class.btn-danger]="action === 'reject'" [disabled]="busy()" (click)="run(request, action)">
-                  {{ 'action.' + action | t }}
-                </button>
-              }
-            </div>
+          </div>
+        </div>
+        <div class="actions">
+          @for (action of actions(); track action) {
+            <button type="button" class="btn {{ buttonClass(action) }}" [disabled]="busy()" (click)="run(request, action)">
+              <app-icon [name]="actionIcons[action]" />{{ 'action.' + action | t }}
+            </button>
           }
-        </section>
-      </div>
+        </div>
+      </section>
+    } @else {
+      <p class="no-actions muted">{{ 'detail.noActions' | t }}</p>
+    }
+
+    <div class="layout">
+      <section class="panel" aria-labelledby="info-title">
+        <h2 id="info-title" class="panel-title">{{ 'detail.info' | t }}</h2>
+        <p class="description">{{ request.description || ('detail.noDescription' | t) }}</p>
+        <dl class="fields">
+          <div>
+            <dt>{{ 'list.amount' | t }}</dt>
+            <dd class="amount num">{{ request.amount | money }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'wizard.field.priority' | t }}</dt>
+            <dd><app-priority [priority]="request.priority" /></dd>
+          </div>
+          <div>
+            <dt>{{ 'list.due' | t }}</dt>
+            <dd>{{ request.dueAt | localDate }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'list.requester' | t }}</dt>
+            <dd class="person"><app-avatar [name]="request.requester" size="sm" />{{ request.requester }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'wizard.field.category' | t }}</dt>
+            <dd>{{ 'category.' + request.category | t }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'detail.updatedAt' | t }}</dt>
+            <dd>{{ request.updatedAt | localDate }}</dd>
+          </div>
+        </dl>
+        <h3 class="sub-title">{{ 'detail.documents' | t }}</h3>
+        @if (request.documents.length) {
+          <ul class="docs">
+            @for (doc of request.documents; track doc) {
+              <li><app-icon name="file" />{{ doc }}</li>
+            }
+          </ul>
+        } @else {
+          <p class="muted">{{ 'detail.noDocuments' | t }}</p>
+        }
+      </section>
 
       <section class="panel" aria-labelledby="timeline-title">
-        <h2 id="timeline-title">{{ 'detail.timeline' | t }}</h2>
+        <h2 id="timeline-title" class="panel-title">{{ 'detail.timeline' | t }}</h2>
         @if (session.can('audit.view')) {
           <ol class="timeline" data-testid="audit-timeline">
             @for (entry of request.audit; track entry.id) {
-              <li>
-                <p class="timeline-head">
-                  <strong>{{ 'action.' + entry.action | t }}</strong>
-                  @if (entry.from) {
-                    <span class="muted">{{ 'status.' + entry.from | t }} → </span>
+              <li [attr.data-action]="entry.action">
+                <span class="node"><app-icon [name]="actionIcons[entry.action]" [size]="1" /></span>
+                <div class="entry">
+                  <p class="entry-title">
+                    <strong>{{ 'action.' + entry.action | t }}</strong>
+                    <time class="muted" [attr.datetime]="entry.at">{{ entry.at | localDate }}</time>
+                  </p>
+                  <p class="actor muted">
+                    <app-avatar [name]="entry.actor" size="sm" />{{ entry.actor }} · {{ 'role.' + entry.role | t }}
+                  </p>
+                  <p class="transition">
+                    @if (entry.from) {
+                      <app-status-badge [status]="entry.from" />
+                      <app-icon name="arrowRight" [size]="0.875" />
+                    }
+                    <app-status-badge [status]="entry.to" />
+                  </p>
+                  @if (entry.comment) {
+                    <blockquote>{{ entry.comment }}</blockquote>
                   }
-                  <span>{{ 'status.' + entry.to | t }}</span>
-                </p>
-                <p class="muted">
-                  {{ entry.actor }} · {{ 'role.' + entry.role | t }} ·
-                  <time [attr.datetime]="entry.at">{{ entry.at | localDate }}</time>
-                </p>
-                @if (entry.comment) {
-                  <blockquote>{{ entry.comment }}</blockquote>
-                }
+                </div>
               </li>
             }
           </ol>
