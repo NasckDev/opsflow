@@ -90,6 +90,12 @@
     margin: 0 0 var(--space-1);
   }
 
+  .timeline-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
   blockquote {
     margin: var(--space-1) 0 0;
     padding: var(--space-2) var(--space-3);

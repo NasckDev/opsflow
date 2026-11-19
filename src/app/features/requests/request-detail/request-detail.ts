@@ -11,7 +11,16 @@ import {
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { Observable, catchError, combineLatest, finalize, map, of, startWith, switchMap } from 'rxjs';
+import {
+  Observable,
+  catchError,
+  combineLatest,
+  finalize,
+  map,
+  of,
+  startWith,
+  switchMap,
+} from 'rxjs';
 import { RequestsApi, apiErrorCode } from '../../../core/api/requests.api';
 import { LocalDatePipe, MoneyPipe } from '../../../core/i18n/format.pipes';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';

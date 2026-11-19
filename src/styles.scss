@@ -247,3 +247,10 @@ textarea {
     animation: none;
   }
 }
+
+input[type='checkbox'],
+input[type='radio'] {
+  width: auto;
+  min-height: 0;
+  padding: 0;
+}

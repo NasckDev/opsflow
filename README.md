@@ -2,6 +2,20 @@
 
 Console de workflow com etapas rastreáveis, permissões por papel, trilha de auditoria imutável e suporte multilíngue (pt-BR/en). Dados 100% fictícios; a API é simulada no navegador.
 
+## Telas
+
+Capturas em desktop (1440x900) e celular (390x844), com os dados fictícios de exemplo.
+
+![Lista de solicitações com status e SLA](docs/prints/opsflow-lista-solicitacoes-desktop.webp)
+
+![Detalhe de uma solicitação aprovada com a linha do tempo de auditoria](docs/prints/opsflow-detalhe-auditoria-desktop.webp)
+
+![Wizard de nova solicitação, etapa de detalhes](docs/prints/opsflow-wizard-detalhes-desktop.webp)
+
+![Wizard de nova solicitação, etapa de revisão](docs/prints/opsflow-wizard-revisao-desktop.webp)
+
+<img src="docs/prints/opsflow-lista-solicitacoes-mobile.webp" alt="Lista de solicitações no celular" width="260"> <img src="docs/prints/opsflow-detalhe-auditoria-mobile.webp" alt="Detalhe com auditoria no celular" width="260">
+
 ## Stack
 
 Angular 22 (standalone, signals, zoneless, control flow `@if/@for`), formulários reativos tipados, RxJS (busca com debounce e cancelamento via `switchMap`), Angular CDK (`LiveAnnouncer`), Vitest.
@@ -47,7 +61,17 @@ npm ci
 npm start        # http://localhost:4200
 npx ng test      # testes unitários (Vitest)
 npm run build
+npm run lint     # ESLint (angular-eslint, configuração flat)
 ```
+
+### Build portátil (qualquer subcaminho)
+
+```bash
+npm run build:portable   # gera dist-portable/ (configuração "portable": base href ./)
+```
+
+A pasta usa caminhos relativos e roteamento por hash, então funciona servida em qualquer subcaminho,
+por exemplo `/projetos/opsflow/`. O deploy do Pages continua usando `--base-href /opsflow/`.
 
 ## Licença
 

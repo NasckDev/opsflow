@@ -7,7 +7,9 @@ import { evaluateSla } from '../domain/sla';
   selector: 'app-status-badge',
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<span class="badge" [attr.data-status]="status()">{{ 'status.' + status() | t }}</span>`,
+  template: `<span class="badge" [attr.data-status]="status()">{{
+    'status.' + status() | t
+  }}</span>`,
 })
 export class StatusBadge {
   readonly status = input.required<RequestStatus>();
