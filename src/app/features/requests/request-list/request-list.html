@@ -1,0 +1,74 @@
+<section class="page" aria-labelledby="list-title">
+  <header class="page-header">
+    <h1 id="list-title" tabindex="-1">{{ 'list.title' | t }}</h1>
+    @if (session.can('request.create')) {
+      <a class="btn btn-primary" routerLink="/requests/new">{{ 'list.new' | t }}</a>
+    }
+  </header>
+
+  <form class="filters" role="search" (submit)="$event.preventDefault()">
+    <div class="field">
+      <label for="search">{{ 'list.search' | t }}</label>
+      <input id="search" type="search" [value]="query()" (input)="onQuery($event)" />
+    </div>
+    <div class="field">
+      <label for="status-filter">{{ 'list.status' | t }}</label>
+      <select id="status-filter" [value]="status()" (change)="onStatus($event)">
+        <option value="">{{ 'status.all' | t }}</option>
+        @for (item of statuses; track item) {
+          <option [value]="item">{{ 'status.' + item | t }}</option>
+        }
+      </select>
+    </div>
+  </form>
+
+  <div aria-live="polite" class="results">
+    @switch (state().kind) {
+      @case ('loading') {
+        <p class="state" role="status">
+          <span class="spinner" aria-hidden="true"></span>{{ 'list.loading' | t }}
+        </p>
+      }
+      @case ('error') {
+        <div class="state state-error" role="alert">
+          <p>{{ 'list.error' | t }}</p>
+          <button type="button" class="btn" (click)="retry()">{{ 'list.retry' | t }}</button>
+        </div>
+      }
+    }
+    @let current = state();
+    @if (current.kind === 'loaded') {
+      @if (current.items.length === 0) {
+        <p class="state">{{ 'list.empty' | t }}</p>
+      } @else {
+        <p class="count">{{ 'list.count' | t: { count: current.items.length } }}</p>
+        <ul class="cards" data-testid="request-list">
+          @for (request of current.items; track request.id) {
+            <li class="card">
+              <div class="card-top">
+                <span class="code">{{ request.code }}</span>
+                <app-status-badge [status]="request.status" />
+              </div>
+              <a class="card-title" [routerLink]="['/requests', request.id]">{{ request.title }}</a>
+              <dl class="meta">
+                <div>
+                  <dt>{{ 'list.requester' | t }}</dt>
+                  <dd>{{ request.requester }}</dd>
+                </div>
+                <div>
+                  <dt>{{ 'list.amount' | t }}</dt>
+                  <dd>{{ request.amount | money }}</dd>
+                </div>
+                <div>
+                  <dt>{{ 'list.due' | t }}</dt>
+                  <dd>{{ request.dueAt | localDate }}</dd>
+                </div>
+              </dl>
+              <app-sla-badge [request]="request" />
+            </li>
+          }
+        </ul>
+      }
+    }
+  </div>
+</section>

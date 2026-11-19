@@ -1,0 +1,106 @@
+<section class="page">
+  <a class="back" routerLink="/requests">← {{ 'detail.back' | t }}</a>
+
+  @let current = state();
+  @switch (current.kind) {
+    @case ('loading') {
+      <p class="state" role="status"><span class="spinner" aria-hidden="true"></span>{{ 'list.loading' | t }}</p>
+    }
+    @case ('not_found') {
+      <p class="state" role="alert">{{ 'detail.notFound' | t }}</p>
+    }
+    @case ('error') {
+      <div class="state state-error" role="alert">
+        <p>{{ 'list.error' | t }}</p>
+        <button type="button" class="btn" (click)="retry()">{{ 'list.retry' | t }}</button>
+      </div>
+    }
+  }
+
+  @if (current.kind === 'loaded') {
+    @let request = current.request;
+    <header class="page-header">
+      <div>
+        <p class="code">{{ request.code }}</p>
+        <h1>{{ request.title }}</h1>
+      </div>
+      <div class="badges">
+        <app-status-badge [status]="request.status" />
+        <app-sla-badge [request]="request" />
+      </div>
+    </header>
+
+    <div class="layout">
+      <div class="column">
+        <section class="panel" aria-labelledby="info-title">
+          <h2 id="info-title" class="visually-hidden">{{ request.code }}</h2>
+          @if (request.description) {
+            <p>{{ request.description }}</p>
+          }
+          <dl class="summary">
+            <dt>{{ 'list.requester' | t }}</dt><dd>{{ request.requester }}</dd>
+            <dt>{{ 'wizard.field.category' | t }}</dt><dd>{{ 'category.' + request.category | t }}</dd>
+            <dt>{{ 'wizard.field.priority' | t }}</dt><dd>{{ 'priority.' + request.priority | t }}</dd>
+            <dt>{{ 'list.amount' | t }}</dt><dd>{{ request.amount | money }}</dd>
+            <dt>{{ 'list.due' | t }}</dt><dd>{{ request.dueAt | localDate }}</dd>
+            <dt>{{ 'detail.documents' | t }}</dt>
+            <dd>{{ request.documents.length ? request.documents.join(', ') : ('detail.noDocuments' | t) }}</dd>
+          </dl>
+        </section>
+
+        <section class="panel" aria-labelledby="actions-title">
+          <h2 id="actions-title">{{ 'detail.actions' | t }}</h2>
+          @if (actions().length === 0) {
+            <p class="muted">{{ 'detail.noActions' | t }}</p>
+          } @else {
+            <div class="field">
+              <label for="comment">{{ 'detail.comment' | t }}</label>
+              <textarea #commentField id="comment" rows="3" [value]="comment()" (input)="onComment($event)"
+                aria-describedby="comment-hint" [attr.aria-invalid]="actionError() ? 'true' : null"></textarea>
+              <p id="comment-hint" class="hint">{{ 'detail.commentHint' | t }}</p>
+            </div>
+            @if (actionError(); as message) {
+              <p class="field-error" role="alert">{{ message }}</p>
+            }
+            <div class="actions">
+              @for (action of actions(); track action) {
+                <button type="button" class="btn" [class.btn-primary]="action === 'approve' || action === 'submit' || action === 'resubmit'"
+                  [class.btn-danger]="action === 'reject'" [disabled]="busy()" (click)="run(request, action)">
+                  {{ 'action.' + action | t }}
+                </button>
+              }
+            </div>
+          }
+        </section>
+      </div>
+
+      <section class="panel" aria-labelledby="timeline-title">
+        <h2 id="timeline-title">{{ 'detail.timeline' | t }}</h2>
+        @if (session.can('audit.view')) {
+          <ol class="timeline" data-testid="audit-timeline">
+            @for (entry of request.audit; track entry.id) {
+              <li>
+                <p class="timeline-head">
+                  <strong>{{ 'action.' + entry.action | t }}</strong>
+                  @if (entry.from) {
+                    <span class="muted">{{ 'status.' + entry.from | t }} → </span>
+                  }
+                  <span>{{ 'status.' + entry.to | t }}</span>
+                </p>
+                <p class="muted">
+                  {{ entry.actor }} · {{ 'role.' + entry.role | t }} ·
+                  <time [attr.datetime]="entry.at">{{ entry.at | localDate }}</time>
+                </p>
+                @if (entry.comment) {
+                  <blockquote>{{ entry.comment }}</blockquote>
+                }
+              </li>
+            }
+          </ol>
+        } @else {
+          <p class="muted">{{ 'detail.timelineHidden' | t }}</p>
+        }
+      </section>
+    </div>
+  }
+</section>

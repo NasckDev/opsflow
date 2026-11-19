@@ -1,0 +1,123 @@
+<section class="page" aria-labelledby="wizard-title">
+  <header class="page-header">
+    <h1 id="wizard-title">{{ 'wizard.title' | t }}</h1>
+    <a class="btn" routerLink="/requests">{{ 'wizard.cancel' | t }}</a>
+  </header>
+
+  @if (!session.can('request.create')) {
+    <p class="state state-error" role="alert">{{ 'wizard.forbidden' | t }}</p>
+  } @else {
+    <ol class="stepper" [attr.aria-label]="'wizard.step' | t: { current: step() + 1, total: steps.length }">
+      @for (label of steps; track label; let i = $index) {
+        <li [class.active]="i === step()" [class.done]="i < step()" [attr.aria-current]="i === step() ? 'step' : null">
+          <span class="step-index" aria-hidden="true">{{ i + 1 }}</span>{{ label | t }}
+        </li>
+      }
+    </ol>
+
+    <form [formGroup]="form" (ngSubmit)="isLastStep() ? save(true) : next()" novalidate>
+      <div #stepPanel class="panel">
+        @if (errorCount() > 0) {
+          <p class="error-summary" role="alert">{{ 'wizard.errorsSummary' | t: { count: errorCount() } }}</p>
+        }
+
+        @switch (step()) {
+          @case (0) {
+            <fieldset formGroupName="details">
+              <h2 tabindex="-1">{{ 'wizard.step.details' | t }}</h2>
+              @let title = form.controls.details.controls.title;
+              <div class="field">
+                <label for="title">{{ 'wizard.field.title' | t }} *</label>
+                <input id="title" formControlName="title" autocomplete="off"
+                  [attr.aria-invalid]="error(title) ? 'true' : null"
+                  [attr.aria-describedby]="error(title) ? 'title-error' : null" />
+                @if (error(title); as e) {
+                  <p id="title-error" class="field-error">{{ e.key | t: e.params }}</p>
+                }
+              </div>
+              <div class="field">
+                <label for="description">{{ 'wizard.field.description' | t }}</label>
+                <textarea id="description" formControlName="description" rows="3"></textarea>
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="category">{{ 'wizard.field.category' | t }}</label>
+                  <select id="category" formControlName="category">
+                    @for (item of categories; track item) {
+                      <option [value]="item">{{ 'category.' + item | t }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="priority">{{ 'wizard.field.priority' | t }}</label>
+                  <select id="priority" formControlName="priority">
+                    @for (item of priorities; track item) {
+                      <option [value]="item">{{ 'priority.' + item | t }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              @let amount = form.controls.details.controls.amount;
+              <div class="field">
+                <label for="amount">{{ 'wizard.field.amount' | t }} *</label>
+                <input id="amount" type="number" inputmode="decimal" min="0" step="0.01" formControlName="amount"
+                  [attr.aria-invalid]="error(amount) ? 'true' : null"
+                  [attr.aria-describedby]="error(amount) ? 'amount-error' : null" />
+                @if (error(amount); as e) {
+                  <p id="amount-error" class="field-error">{{ e.key | t: e.params }}</p>
+                }
+              </div>
+            </fieldset>
+          }
+          @case (1) {
+            <fieldset formGroupName="deadline">
+              <h2 tabindex="-1">{{ 'wizard.step.deadline' | t }}</h2>
+              @let dueAt = form.controls.deadline.controls.dueAt;
+              <div class="field">
+                <label for="dueAt">{{ 'wizard.field.dueAt' | t }} *</label>
+                <input id="dueAt" type="datetime-local" formControlName="dueAt"
+                  [attr.aria-invalid]="error(dueAt) ? 'true' : null"
+                  [attr.aria-describedby]="error(dueAt) ? 'dueAt-error' : null" />
+                @if (error(dueAt); as e) {
+                  <p id="dueAt-error" class="field-error">{{ e.key | t: e.params }}</p>
+                }
+              </div>
+              <div class="field">
+                <label for="documents">{{ 'wizard.field.documents' | t }}</label>
+                <textarea id="documents" formControlName="documents" rows="4" placeholder="orcamento.pdf"></textarea>
+              </div>
+            </fieldset>
+          }
+          @case (2) {
+            <h2 tabindex="-1">{{ 'wizard.step.review' | t }}</h2>
+            @let summary = review();
+            <dl class="summary" data-testid="wizard-summary">
+              <dt>{{ 'wizard.field.title' | t }}</dt><dd>{{ summary.title }}</dd>
+              <dt>{{ 'wizard.field.category' | t }}</dt><dd>{{ 'category.' + summary.category | t }}</dd>
+              <dt>{{ 'wizard.field.priority' | t }}</dt><dd>{{ 'priority.' + summary.priority | t }}</dd>
+              <dt>{{ 'wizard.field.amount' | t }}</dt><dd>{{ summary.amount | money }}</dd>
+              <dt>{{ 'wizard.field.dueAt' | t }}</dt><dd>{{ summary.dueAt | localDate }}</dd>
+              <dt>{{ 'detail.documents' | t }}</dt>
+              <dd>{{ documents().length ? documents().join(', ') : ('detail.noDocuments' | t) }}</dd>
+            </dl>
+            @if (saveError()) {
+              <p class="state state-error" role="alert">{{ 'wizard.saveError' | t }}</p>
+            }
+          }
+        }
+      </div>
+
+      <div class="actions">
+        @if (step() > 0) {
+          <button type="button" class="btn" (click)="back()">{{ 'wizard.back' | t }}</button>
+        }
+        @if (isLastStep()) {
+          <button type="button" class="btn" [disabled]="saving()" (click)="save(false)">{{ 'wizard.saveDraft' | t }}</button>
+          <button type="submit" class="btn btn-primary" [disabled]="saving()">{{ 'wizard.submit' | t }}</button>
+        } @else {
+          <button type="submit" class="btn btn-primary">{{ 'wizard.next' | t }}</button>
+        }
+      </div>
+    </form>
+  }
+</section>
