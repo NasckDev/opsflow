@@ -532,7 +532,7 @@ test.describe('celular', () => {
     await page.waitForSelector('.req-card');
     await expect(page.locator('.req-card')).toHaveCount(15);
     await page.getByRole('button', { name: /Mostrar mais/ }).click();
-    expect(await page.locator('.req-card').count()).toBeGreaterThan(15);
+    await expect.poll(() => page.locator('.req-card').count()).toBeGreaterThan(15);
   });
 
   test('rodapé do wizard cabe: enviar em largura total e salvar rascunho embaixo', async ({
