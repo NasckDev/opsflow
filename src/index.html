@@ -21,6 +21,18 @@
   </script>
 </head>
 <body>
+  <script>
+    // Só a folha de estilo do tema ativo vale (as duas vêm no index; ver UiTheme).
+    try {
+      var dark = document.documentElement.dataset.theme === 'dark';
+      document.querySelectorAll('link[rel=stylesheet]').forEach(function (link) {
+        if (link.href.indexOf('theme-dark') > -1) link.media = dark ? 'all' : 'not all';
+        else if (link.href.indexOf('theme-light') > -1) link.media = dark ? 'not all' : 'all';
+      });
+    } catch (e) {
+      /* sem DOM: o app ajusta ao iniciar */
+    }
+  </script>
   <app-root></app-root>
 </body>
 </html>

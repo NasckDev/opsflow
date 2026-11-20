@@ -36,7 +36,19 @@
               "node_modules/@fontsource/ibm-plex-sans/latin-700.css",
               "node_modules/@fontsource/ibm-plex-mono/latin-400.css",
               "node_modules/@fontsource/ibm-plex-mono/latin-500.css",
+              {
+                "input": "src/styles/theme-light.less",
+                "bundleName": "theme-light"
+              },
+              {
+                "input": "src/styles/theme-dark.less",
+                "bundleName": "theme-dark"
+              },
               "src/styles.scss"
+            ],
+            "allowedCommonJsDependencies": [
+              "echarts",
+              "zrender"
             ]
           },
           "configurations": {
@@ -44,8 +56,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "2MB",
+                  "maximumError": "3MB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -53,7 +65,15 @@
                   "maximumError": "12kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "fonts": true
+              }
             },
             "development": {
               "optimization": false,
@@ -64,8 +84,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "2MB",
+                  "maximumError": "3MB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -78,6 +98,14 @@
               "outputPath": {
                 "base": "dist-portable",
                 "browser": ""
+              },
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "fonts": true
               }
             }
           },
@@ -99,6 +127,46 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "runnerConfig": true
+          }
+        },
+        "storybook": {
+          "builder": "@storybook/angular:start-storybook",
+          "options": {
+            "configDir": ".storybook",
+            "tsConfig": ".storybook/tsconfig.json",
+            "compodoc": false,
+            "styles": [
+              "node_modules/@fontsource/ibm-plex-sans/latin-400.css",
+              "node_modules/@fontsource/ibm-plex-sans/latin-500.css",
+              "node_modules/@fontsource/ibm-plex-sans/latin-600.css",
+              "node_modules/@fontsource/ibm-plex-sans/latin-700.css",
+              "node_modules/@fontsource/ibm-plex-mono/latin-400.css",
+              "node_modules/@fontsource/ibm-plex-mono/latin-500.css",
+              "src/styles/theme-light.less",
+              "src/styles.scss"
+            ],
+            "experimentalZoneless": true,
+            "port": 6006
+          }
+        },
+        "build-storybook": {
+          "builder": "@storybook/angular:build-storybook",
+          "options": {
+            "configDir": ".storybook",
+            "tsConfig": ".storybook/tsconfig.json",
+            "compodoc": false,
+            "styles": [
+              "node_modules/@fontsource/ibm-plex-sans/latin-400.css",
+              "node_modules/@fontsource/ibm-plex-sans/latin-500.css",
+              "node_modules/@fontsource/ibm-plex-sans/latin-600.css",
+              "node_modules/@fontsource/ibm-plex-sans/latin-700.css",
+              "node_modules/@fontsource/ibm-plex-mono/latin-400.css",
+              "node_modules/@fontsource/ibm-plex-mono/latin-500.css",
+              "src/styles/theme-light.less",
+              "src/styles.scss"
+            ],
+            "experimentalZoneless": true,
+            "outputDir": "storybook-static"
           }
         }
       }

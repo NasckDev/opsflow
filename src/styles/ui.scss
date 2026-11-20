@@ -1,0 +1,344 @@
+/*
+ * Ajustes da camada de UI sobre o NG-ZORRO: tons semânticos dos tokens, foco visível,
+ * alvos de 44 px no celular e peças próprias dos wrappers (src/app/ui).
+ */
+
+/* Tons (etiquetas, pontos da linha do tempo): pares texto/fundo em AA nos dois temas. */
+.app-tone {
+  --tone: var(--ox-color-text);
+  --tone-bg: var(--ox-neutral-surface);
+  color: var(--tone) !important;
+  background: var(--tone-bg) !important;
+  border-color: color-mix(in srgb, var(--tone) 35%, transparent) !important;
+
+  &.app-tone-success {
+    --tone: var(--ox-color-success);
+    --tone-bg: var(--ox-color-success-surface);
+  }
+  &.app-tone-warning {
+    --tone: var(--ox-color-warning);
+    --tone-bg: var(--ox-color-warning-surface);
+  }
+  &.app-tone-danger {
+    --tone: var(--ox-color-danger);
+    --tone-bg: var(--ox-color-danger-surface);
+  }
+  &.app-tone-info {
+    --tone: var(--ox-color-info);
+    --tone-bg: var(--ox-color-info-surface);
+  }
+  &.app-tone-violet {
+    --tone: var(--ox-color-violet);
+    --tone-bg: var(--ox-color-violet-surface);
+  }
+  &.app-tone-neutral {
+    --tone: var(--ox-color-text-muted);
+    --tone-bg: var(--ox-neutral-surface);
+  }
+}
+
+.ant-tag.app-tone {
+  margin-inline-end: 0;
+  font-weight: 500;
+}
+
+.ant-tag.app-tag-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 1.75rem;
+  padding-inline: 0.625rem;
+  color: var(--ox-color-text);
+  background: transparent;
+  border: 1px solid var(--ox-color-border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.ant-tag.app-tag-button.ant-tag-checkable-checked {
+  color: var(--ox-color-text-on-accent);
+  background: var(--ox-color-accent);
+  border-color: var(--ox-color-accent);
+}
+
+.app-timeline-dot {
+  display: inline-grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 50%;
+}
+
+.app-tab-count {
+  margin-inline-start: 0.375rem;
+  padding: 0 0.375rem;
+  font-size: 0.75rem;
+  background: var(--ox-neutral-surface);
+  border-radius: 999px;
+}
+
+.app-table-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* Botão de sucesso (decisão positiva): extensão do OpsFlow sobre o botão primário. */
+.app-button-success .ant-btn-primary {
+  color: var(--ox-color-text-on-accent);
+  background: var(--ox-color-success-solid);
+  border-color: var(--ox-color-success-solid);
+}
+
+.app-button-block {
+  display: block;
+}
+
+.app-button-success .ant-btn-primary:hover:not([disabled]) {
+  filter: brightness(1.08);
+}
+
+/* Barra de ações dos popups (feedback com ação). */
+.app-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: left;
+
+  &[data-kind='success'] .anticon {
+    color: var(--ox-color-success);
+  }
+  &[data-kind='error'] .anticon {
+    color: var(--ox-color-danger);
+  }
+  &[data-kind='warning'] .anticon {
+    color: var(--ox-color-warning);
+  }
+  &[data-kind='info'] .anticon {
+    color: var(--ox-color-info);
+  }
+}
+
+/* Avatar com iniciais: fundo pastel e texto escuro (claro) ou o inverso (escuro). */
+.app-avatar .ant-avatar {
+  color: #1d2330;
+  font-weight: 600;
+  background: hsl(var(--hue) 70% 86%);
+  border: 1px solid hsl(var(--hue) 55% 62%);
+}
+
+:root[data-theme='dark'] .app-avatar .ant-avatar {
+  color: #eef2f8;
+  background: hsl(var(--hue) 40% 26%);
+  border-color: hsl(var(--hue) 45% 46%);
+}
+
+/* Etapas concluídas em verde: "feito" é sucesso, não ação. */
+.ant-steps-item-finish .ant-steps-item-icon {
+  border-color: var(--ox-color-success);
+  background: var(--ox-color-success-surface);
+
+  .ant-steps-icon {
+    color: var(--ox-color-success);
+  }
+}
+
+.ant-steps-item-finish > .ant-steps-item-container > .ant-steps-item-tail::after {
+  background: var(--ox-color-success);
+}
+
+/* Contador do menu e da barra inferior. */
+.app-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.app-menu-badge {
+  margin-inline-start: auto;
+  min-width: 1.25rem;
+  padding: 0 0.375rem;
+  color: var(--ox-color-text-on-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-align: center;
+  background: var(--ox-color-accent);
+  border-radius: 999px;
+}
+
+.ant-menu-inline-collapsed .app-menu-badge,
+.ant-menu-inline-collapsed .app-menu-label {
+  display: none;
+}
+
+.app-menu-title {
+  padding: 0.75rem 1rem 0.25rem;
+  color: var(--ox-color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.app-badge-primary .ant-badge-count {
+  color: var(--ox-color-text-on-accent);
+  background: var(--ox-color-accent);
+  box-shadow: 0 0 0 1px var(--ox-color-surface-raised);
+}
+
+.app-badge-danger .ant-badge-count {
+  color: #fff;
+  background: var(--ox-color-danger-solid);
+  box-shadow: 0 0 0 1px var(--ox-color-surface-raised);
+}
+
+/* Barra inferior (celular). */
+.app-bottom-nav {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 100;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--ox-color-surface-raised);
+  border-top: 1px solid var(--ox-color-border);
+}
+
+.app-bottom-nav-item {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.125rem;
+  min-height: 3.5rem;
+  padding: 0.375rem 0.25rem;
+  color: var(--ox-color-text-muted);
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-decoration: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &.active {
+    color: var(--ox-color-accent-text);
+  }
+}
+
+/* Foco sempre visível (WCAG 2.4.7), com o anel do tema. */
+:focus-visible {
+  outline: 2px solid var(--ox-color-focus-ring) !important;
+  outline-offset: 2px;
+}
+
+/* Alvos de toque de 44 px no celular. */
+@media (max-width: 959px) {
+  .ant-btn:not(.ant-btn-sm):not(.ant-btn-icon-only),
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-select:not(.ant-select-sm) .ant-select-selector,
+  .ant-picker {
+    min-height: 44px;
+  }
+
+  .ant-btn.ant-btn-icon-only,
+  .ant-btn-sm {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .ant-select-single:not(.ant-select-customize-input) .ant-select-selector {
+    align-items: center;
+  }
+
+  .ant-menu-item,
+  .ant-dropdown-menu-item {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .ant-pagination-item,
+  .ant-pagination-prev,
+  .ant-pagination-next {
+    min-width: 44px;
+    height: 44px;
+    line-height: 42px;
+  }
+
+  .ant-checkbox-inner {
+    width: 22px;
+    height: 22px;
+  }
+
+  .ant-tag.app-tag-button {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ant-btn,
+  .ant-menu,
+  .ant-drawer,
+  .ant-modal,
+  .ant-progress-bg,
+  .ant-steps-item-icon {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Barra de SLA colorida pelo risco (o componente define --sla-color). */
+[data-sla] .ant-progress-bg,
+[data-sla] .ant-progress-success-bg {
+  background: var(--sla-color) !important;
+}
+
+.app-tone .anticon {
+  margin-inline-end: 4px;
+}
+
+.ant-menu-inline .ant-menu-item {
+  height: 38px;
+  margin-block: 2px;
+  line-height: 38px;
+}
+
+.ant-layout-header.app-header {
+  height: 56px;
+  padding: 0 20px;
+  line-height: 1.5;
+  background: var(--ox-color-surface-raised);
+  border-bottom: 1px solid var(--ox-color-border);
+
+  @media (max-width: 959px) {
+    padding: 0 12px;
+  }
+}
+
+.ant-layout-content.app-content {
+  min-width: 0;
+}
+
+.app-menu-link .anticon {
+  font-size: 1rem;
+}
+
+.ant-layout-sider.app-sider {
+  border-right: 1px solid var(--ox-color-border);
+}
+
+/* Item ativo do menu: texto no tom de contraste AA sobre o fundo claro. */
+.ant-menu-item-selected,
+.ant-menu-item-selected .app-menu-link {
+  color: var(--ox-color-accent-text);
+}

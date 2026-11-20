@@ -46,3 +46,4 @@ dist-portable
 
 /test-results
 /playwright-report
+/storybook-static
