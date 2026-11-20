@@ -1,98 +1,90 @@
 <section class="page" aria-labelledby="admin-title">
-  <header class="page-header">
-    <div class="titles">
-      <h1 id="admin-title" tabindex="-1">{{ 'admin.title' | t }}</h1>
-      <p class="muted">{{ 'admin.subtitle' | t }}</p>
-    </div>
-  </header>
+  <app-page-header
+    titleId="admin-title"
+    [title]="'admin.title' | t"
+    [subtitle]="'admin.subtitle' | t"
+    [breadcrumb]="[{ label: 'OpsFlow', href: '#/inbox' }, { label: 'app.nav.admin' | t }]"
+  />
 
-  <div class="layout">
-    <section class="panel" aria-labelledby="matrix-title">
-      <h2 id="matrix-title" class="panel-title">{{ 'admin.matrix' | t }}</h2>
-      <div class="scroll" tabindex="0" role="region" [attr.aria-label]="'admin.matrix' | t">
-        <table class="matrix" data-testid="rbac-matrix">
-          <caption class="visually-hidden">{{ 'admin.matrix' | t }}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{{ 'admin.permission' | t }}</th>
-              @for (role of roles; track role) {
-                <th scope="col" class="center" [class.current]="role === session.currentRole()">
-                  {{ 'role.' + role | t }}
-                </th>
-              }
-            </tr>
-          </thead>
-          <tbody>
-            @for (permission of permissions; track permission) {
-              <tr>
-                <th scope="row">{{ 'perm.' + permission | t }}</th>
-                @for (role of roles; track role) {
-                  <td class="center" [class.current]="role === session.currentRole()">
-                    @if (allowed(role, permission)) {
-                      <span class="yes"><app-icon name="check" [size]="1" /></span>
-                      <span class="visually-hidden">{{ 'admin.allowed' | t }}</span>
-                    } @else {
-                      <span class="no" aria-hidden="true">–</span>
-                      <span class="visually-hidden">{{ 'admin.denied' | t }}</span>
-                    }
-                  </td>
+  <div class="page-grid-2">
+    <app-card [title]="'admin.matrix' | t" headingId="matrix-title">
+      @if (viewport.mobile()) {
+        <app-list [data]="roleRows" [ariaLabel]="'admin.matrix' | t">
+          <ng-template let-row>
+            <div class="role-card" [class.current]="row.role === session.currentRole()">
+              <p class="role-name">
+                <strong>{{ 'role.' + row.role | t }}</strong>
+                @if (row.role === session.currentRole()) {
+                  <app-tag tone="success">{{ 'admin.current' | t }}</app-tag>
                 }
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-      <ul class="role-cards" [attr.aria-label]="'admin.matrix' | t">
-        @for (role of roles; track role) {
-          <li class="role-card" [class.current]="role === session.currentRole()">
-            <p class="role-name"><strong>{{ 'role.' + role | t }}</strong>@if (role === session.currentRole()) {<span class="chip chip-plain" data-status="approved">{{ 'admin.current' | t }}</span>}</p>
-            <ul class="granted">
-              @for (permission of permissions; track permission) {
-                @if (allowed(role, permission)) {
+              </p>
+              <ul class="granted">
+                @for (permission of granted(row.role); track permission) {
                   <li><app-icon name="check" [size]="1" />{{ 'perm.' + permission | t }}</li>
+                } @empty {
+                  <li class="none muted">{{ 'admin.noPermissions' | t }}</li>
                 }
-              }
-              @if (!hasAny(role)) {
-                <li class="none">{{ 'admin.noPermissions' | t }}</li>
-              }
-            </ul>
-          </li>
-        }
-      </ul>
-      <p class="hint">{{ 'admin.matrixHint' | t }}</p>
-    </section>
+              </ul>
+            </div>
+          </ng-template>
+        </app-list>
+      } @else {
+        <app-table
+          data-testid="rbac-matrix"
+          [columns]="matrixColumns()"
+          [data]="permissionRows"
+          [pageSize]="20"
+        >
+          <ng-template appTableCell="permission" let-row>
+            <strong>{{ 'perm.' + permissionOf(row) | t }}</strong>
+          </ng-template>
+          <ng-template appTableCell="*" let-row let-key="key">
+            @if (allowed($any(key), permissionOf(row))) {
+              <span class="yes"><app-icon name="check" [size]="1" /></span>
+              <span class="visually-hidden">{{ 'admin.allowed' | t }}</span>
+            } @else {
+              <span class="no" aria-hidden="true">–</span>
+              <span class="visually-hidden">{{ 'admin.denied' | t }}</span>
+            }
+          </ng-template>
+        </app-table>
+      }
+      <p class="hint muted">{{ 'admin.matrixHint' | t }}</p>
+    </app-card>
 
     <div class="side">
-      <section class="panel" aria-labelledby="users-title">
-        <h2 id="users-title" class="panel-title">{{ 'admin.users' | t }}</h2>
-        <ul class="users">
-          @for (user of users; track user.role) {
-            <li [class.current]="user.role === session.currentRole()">
-              <app-avatar [name]="user.name" />
+      <app-card [title]="'admin.users' | t" headingId="users-title">
+        <app-list [data]="roleRows" [ariaLabel]="'admin.users' | t">
+          <ng-template let-row>
+            <div class="user" [class.current]="row.role === session.currentRole()">
+              <app-avatar [name]="userName(row.role)" />
               <span class="who">
-                <strong>{{ user.name }}</strong>
-                <small class="muted">{{ 'role.' + user.role | t }}</small>
+                <strong>{{ userName(row.role) }}</strong>
+                <small class="muted">{{ 'role.' + row.role | t }}</small>
               </span>
-              @if (user.role === session.currentRole()) {
-                <span class="chip chip-plain" data-status="approved">{{ 'admin.current' | t }}</span>
+              @if (row.role === session.currentRole()) {
+                <app-tag tone="success">{{ 'admin.current' | t }}</app-tag>
               } @else {
-                <button type="button" class="btn" (click)="actAs(user.role)" [attr.aria-label]="('admin.actAs' | t) + ' ' + user.name">
+                <app-button
+                  size="small"
+                  [ariaLabel]="('admin.actAs' | t) + ' ' + userName(row.role)"
+                  (click)="actAs(row.role)"
+                >
                   {{ 'admin.actAs' | t }}
-                </button>
+                </app-button>
               }
-            </li>
-          }
-        </ul>
-      </section>
+            </div>
+          </ng-template>
+        </app-list>
+      </app-card>
 
-      <section class="panel" aria-labelledby="rules-title">
-        <h2 id="rules-title" class="panel-title">{{ 'admin.rules' | t }}</h2>
+      <app-card [title]="'admin.rules' | t" headingId="rules-title">
         <ul class="rules">
           @for (rule of rules; track rule.key) {
             <li><app-icon [name]="rule.icon" />{{ rule.key | t }}</li>
           }
         </ul>
-      </section>
+      </app-card>
     </div>
   </div>
 </section>

@@ -7,7 +7,6 @@ import {
   CdkDropListGroup,
 } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { MoneyPipe } from '../../core/i18n/format.pipes';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { TranslationService } from '../../core/i18n/translation.service';
@@ -18,10 +17,22 @@ import { ToastService } from '../../core/ui/toast.service';
 import { BOARD_COLUMNS, actionForMove } from '../../domain/board';
 import { RequestStatus, WorkflowRequest } from '../../domain/request.model';
 import { TRANSITIONS, availableActions } from '../../domain/workflow-machine';
-import { Avatar } from '../../shared/avatar';
 import { PriorityBadge } from '../../shared/badges';
 import { Countdown } from '../../shared/countdown';
-import { Icon } from '../../shared/icon';
+import { ViewportService } from '../../core/ui/viewport.service';
+import {
+  AppAvatar,
+  AppButton,
+  AppCard,
+  AppDropdown,
+  AppDropdownItem,
+  AppIcon,
+  AppPageHeader,
+  AppResult,
+  AppSkeleton,
+  AppTab,
+  AppTabs,
+} from '../../ui';
 
 interface Column {
   readonly status: RequestStatus;
@@ -37,13 +48,19 @@ const SKELETON_COLUMNS = [0, 1, 2, 3] as const;
     CdkDropList,
     CdkDrag,
     CdkDragPreview,
-    RouterLink,
     TranslatePipe,
     MoneyPipe,
-    Avatar,
     PriorityBadge,
     Countdown,
-    Icon,
+    AppAvatar,
+    AppButton,
+    AppCard,
+    AppDropdown,
+    AppIcon,
+    AppPageHeader,
+    AppResult,
+    AppSkeleton,
+    AppTabs,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './board.html',
@@ -56,6 +73,7 @@ export class Board {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(TranslationService);
 
+  protected readonly viewport = inject(ViewportService);
   protected readonly status = this.store.status;
   protected readonly skeletons = SKELETON_COLUMNS;
   protected readonly dragging = signal<WorkflowRequest | null>(null);
@@ -76,6 +94,10 @@ export class Board {
 
   protected retry(): void {
     this.store.load(true);
+  }
+
+  protected setColumn(key: string): void {
+    this.mobileColumn.set(key as RequestStatus);
   }
 
   /** Estados para onde o papel atual pode levar esta solicitação (alternativa ao arrastar). */
@@ -105,12 +127,26 @@ export class Board {
     this.moveTo(request, event.container.data);
   }
 
-  protected onMoveSelect(request: WorkflowRequest, event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const target = select.value as RequestStatus;
-    select.value = '';
-    if (target) this.moveTo(request, target);
+  /** Alternativa ao arrastar: itens do menu "Mover para" (um por estado de destino). */
+  protected moveItems(request: WorkflowRequest): AppDropdownItem[] {
+    return this.targets(request).map((target) => ({
+      key: target,
+      label: this.i18n.translateDynamic(`status.${target}`),
+    }));
   }
+
+  protected onMoveItem(request: WorkflowRequest, key: string): void {
+    this.moveTo(request, key as RequestStatus);
+  }
+
+  protected readonly tabs = computed<AppTab[]>(() => {
+    this.i18n.locale();
+    return this.columns().map((column) => ({
+      key: column.status,
+      label: this.i18n.translateDynamic(`status.${column.status}`),
+      count: column.items.length,
+    }));
+  });
 
   private moveTo(request: WorkflowRequest, target: RequestStatus): void {
     if (request.status === target) return;

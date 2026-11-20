@@ -1,29 +1,28 @@
-import { CdkTrapFocus } from '@angular/cdk/a11y';
-import { DialogRef } from '@angular/cdk/dialog';
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   computed,
+  effect,
   inject,
   signal,
-  viewChild,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ROLES, Role } from '../../domain/request.model';
-import { Icon, IconName } from '../../shared/icon';
+import { AppIcon, AppInput, AppModal, UiIconName } from '../../ui';
 import { TranslatePipe } from '../i18n/translate.pipe';
 import { TranslationService } from '../i18n/translation.service';
 import { RequestsStore } from '../requests/requests.store';
 import { SessionStore } from '../session/session.store';
-import { ThemeService } from '../theme/theme.service';
+import { UiTheme } from '../../ui';
+import { Shortcuts } from './shortcuts.service';
 
 export interface PaletteCommand {
   readonly id: string;
   readonly group: 'go' | 'action' | 'request';
   readonly label: string;
   readonly hint?: string;
-  readonly icon: IconName;
+  readonly icon: UiIconName;
   readonly run: () => void;
 }
 
@@ -48,19 +47,18 @@ export function filterCommands(
 
 @Component({
   selector: 'app-command-palette',
-  imports: [CdkTrapFocus, TranslatePipe, Icon],
+  imports: [FormsModule, TranslatePipe, AppIcon, AppInput, AppModal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './command-palette.html',
   styleUrl: './command-palette.scss',
 })
 export class CommandPalette {
-  private readonly ref = inject<DialogRef<void>>(DialogRef);
+  protected readonly shortcuts = inject(Shortcuts);
   private readonly router = inject(Router);
   private readonly i18n = inject(TranslationService);
   private readonly session = inject(SessionStore);
-  private readonly theme = inject(ThemeService);
+  private readonly theme = inject(UiTheme);
   private readonly store = inject(RequestsStore);
-  private readonly input = viewChild.required<ElementRef<HTMLInputElement>>('field');
 
   protected readonly query = signal('');
   protected readonly active = signal(0);
@@ -75,16 +73,16 @@ export class CommandPalette {
         id: 'go-list',
         group: 'go',
         label: t('app.nav.requests'),
-        icon: 'list',
+        icon: 'unordered-list',
         run: go('/requests'),
       },
-      { id: 'go-board', group: 'go', label: t('app.nav.board'), icon: 'board', run: go('/board') },
-      { id: 'go-admin', group: 'go', label: t('app.nav.admin'), icon: 'shield', run: go('/admin') },
+      { id: 'go-board', group: 'go', label: t('app.nav.board'), icon: 'project', run: go('/board') },
+      { id: 'go-admin', group: 'go', label: t('app.nav.admin'), icon: 'safety', run: go('/admin') },
       {
         id: 'go-new',
         group: 'go',
         label: t('app.nav.new'),
-        icon: 'plusCircle',
+        icon: 'plus-circle',
         run: go('/requests/new'),
       },
     ];
@@ -93,7 +91,7 @@ export class CommandPalette {
         id: 'go-analytics',
         group: 'go',
         label: t('app.nav.analytics'),
-        icon: 'chart',
+        icon: 'bar-chart',
         run: go('/analytics'),
       });
     }
@@ -102,21 +100,21 @@ export class CommandPalette {
         id: 'theme',
         group: 'action',
         label: t('palette.toggleTheme'),
-        icon: this.theme.theme() === 'dark' ? 'sun' : 'moon',
+        icon: this.theme.mode() === 'dark' ? 'bulb' : 'bulb',
         run: () => this.theme.toggle(),
       },
       {
         id: 'locale',
         group: 'action',
         label: t('palette.toggleLocale'),
-        icon: 'user',
+        icon: 'global',
         run: () => this.i18n.setLocale(this.i18n.locale() === 'en' ? 'pt-BR' : 'en'),
       },
       {
         id: 'density',
         group: 'action',
         label: t('palette.toggleDensity'),
-        icon: 'list',
+        icon: 'unordered-list',
         run: () =>
           this.theme.setDensity(this.theme.density() === 'compact' ? 'comfortable' : 'compact'),
       },
@@ -124,7 +122,7 @@ export class CommandPalette {
         id: `role-${role}`,
         group: 'action',
         label: `${t('palette.actAs')} ${t(`role.${role}`)}`,
-        icon: 'users',
+        icon: 'team',
         run: () => this.session.setRole(role as Role),
       })),
     ];
@@ -133,7 +131,7 @@ export class CommandPalette {
       group: 'request',
       label: request.title,
       hint: request.code,
-      icon: 'file',
+      icon: 'file-text',
       run: go(`/requests/${request.id}`),
     }));
     return [...navigation, ...actions, ...requests];
@@ -150,11 +148,12 @@ export class CommandPalette {
 
   constructor() {
     this.store.load();
-  }
-
-  protected onInput(event: Event): void {
-    this.query.set((event.target as HTMLInputElement).value);
-    this.active.set(0);
+    // Foco no campo de busca ao abrir (depois da animação do modal).
+    effect(() => {
+      if (this.shortcuts.paletteOpen()) {
+        setTimeout(() => document.getElementById('palette-field')?.focus(), 150);
+      }
+    });
   }
 
   protected onKeydown(event: KeyboardEvent): void {
@@ -172,11 +171,18 @@ export class CommandPalette {
 
   protected execute(command: PaletteCommand | undefined): void {
     if (!command) return;
-    this.ref.close();
+    this.close();
     command.run();
   }
 
-  protected focusInput(): void {
-    this.input().nativeElement.focus();
+  protected close(): void {
+    this.shortcuts.paletteOpen.set(false);
+    this.query.set('');
+    this.active.set(0);
+  }
+
+  protected onQuery(value: string): void {
+    this.query.set(value);
+    this.active.set(0);
   }
 }

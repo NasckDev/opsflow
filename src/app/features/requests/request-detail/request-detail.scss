@@ -1,0 +1,133 @@
+:host {
+  display: block;
+}
+
+.byline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.decision-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+.decision-text h2 {
+  font-size: 1rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.no-actions {
+  padding: 0 0.25rem;
+}
+
+.column {
+  display: grid;
+  gap: 1rem;
+}
+
+.description {
+  margin-bottom: 1rem;
+  white-space: pre-line;
+}
+
+.amount {
+  font-weight: 600;
+}
+
+.doc {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  background: var(--ox-neutral-surface);
+  border-radius: 6px;
+}
+
+.hint {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.thread {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+.bubble {
+  padding: 0.625rem 0.75rem;
+  background: var(--ox-neutral-surface);
+  border-radius: 8px;
+}
+
+.who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+
+.body {
+  margin-top: 0.25rem;
+  white-space: pre-line;
+}
+
+.composer {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.composer app-form-item {
+  width: 100%;
+}
+
+.entry {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.entry-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  justify-content: space-between;
+}
+
+.actor,
+.transition {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+blockquote {
+  margin: 0.25rem 0 0;
+  padding: 0.375rem 0.75rem;
+  border-inline-start: 3px solid var(--ox-color-border-strong);
+  color: var(--ox-color-text-muted);
+}

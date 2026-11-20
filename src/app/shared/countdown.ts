@@ -3,12 +3,12 @@ import { TranslatePipe } from '../core/i18n/translate.pipe';
 import { NowService } from '../core/time/now.service';
 import { WorkflowRequest } from '../domain/request.model';
 import { evaluateSla, formatCountdown, formatHours, slaOutcome } from '../domain/sla';
-import { Icon } from './icon';
+import { AppIcon } from '../ui';
 
 /** Contagem regressiva do SLA, com cor e ícone por risco (nunca só cor). */
 @Component({
   selector: 'app-countdown',
-  imports: [TranslatePipe, Icon],
+  imports: [TranslatePipe, AppIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[attr.data-sla]': 'sla().state' },
   styles: `
@@ -36,7 +36,7 @@ import { Icon } from './icon';
     }
   `,
   template: `
-    <app-icon [name]="sla().state === 'breached' ? 'alert' : 'clock'" [size]="0.875" />
+    <app-icon [name]="sla().state === 'breached' ? 'exclamation-circle' : 'clock-circle'" [size]="0.875" />
     @switch (sla().state) {
       @case ('closed') {
         @if (outcome(); as result) {

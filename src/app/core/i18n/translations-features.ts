@@ -217,6 +217,10 @@ export const featurePt = {
   'chain.optionalHint': 'O aprovador pode decidir sem esta etapa',
   'analytics.locked.title': 'Análises exigem acesso à auditoria',
   'analytics.locked.hint': 'Seu papel não vê a trilha de auditoria, que alimenta estes gráficos. Troque de papel no perfil.',
+  'app.menu.open': 'Abrir menu de navegação',
+  'app.menu.collapse': 'Recolher menu lateral',
+  'app.menu.expand': 'Expandir menu lateral',
+  'detail.slaStatus': 'Situação do prazo',
 } as const;
 
 export const featureEn: Readonly<Record<keyof typeof featurePt, string>> = {
@@ -436,4 +440,8 @@ export const featureEn: Readonly<Record<keyof typeof featurePt, string>> = {
   'chain.optionalHint': 'The approver can decide without this step',
   'analytics.locked.title': 'Analytics need audit access',
   'analytics.locked.hint': 'Your role cannot see the audit trail that feeds these charts. Switch role in your profile.',
+  'app.menu.open': 'Open navigation menu',
+  'app.menu.collapse': 'Collapse sidebar',
+  'app.menu.expand': 'Expand sidebar',
+  'detail.slaStatus': 'Deadline status',
 };

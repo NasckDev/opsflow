@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import {
   Observable,
   catchError,
@@ -22,10 +23,25 @@ import { requestsToCsv } from '../../../domain/export';
 import { SearchStore } from '../../../core/search/search.store';
 import { SessionStore } from '../../../core/session/session.store';
 import { REQUEST_STATUSES, RequestStatus, WorkflowRequest } from '../../../domain/request.model';
-import { Avatar } from '../../../shared/avatar';
 import { PriorityBadge, SlaMeter, StatusBadge } from '../../../shared/badges';
-import { Icon } from '../../../shared/icon';
-import { SortKey, SortState, countByStatus, nextSort, sortRequests } from './request-sort';
+import { ViewportService } from '../../../core/ui/viewport.service';
+import {
+  AppAvatar,
+  AppButton,
+  AppCard,
+  AppEmpty,
+  AppInput,
+  AppList,
+  AppPageHeader,
+  AppResult,
+  AppSkeleton,
+  AppTable,
+  AppTableCell,
+  AppTableColumn,
+  AppTableSort,
+  AppTag,
+} from '../../../ui';
+import { SortKey, SortState, countByStatus, sortRequests } from './request-sort';
 
 export const SEARCH_DEBOUNCE_MS = 300;
 const CARD_PAGE_SIZE = 15;
@@ -41,7 +57,7 @@ const LOADING: ListState = { kind: 'loading' };
 interface Column {
   readonly key: SortKey;
   readonly label: TranslationKey;
-  readonly align?: 'end';
+  readonly align?: 'right';
 }
 
 const COLUMNS: readonly Column[] = [
@@ -50,21 +66,31 @@ const COLUMNS: readonly Column[] = [
   { key: 'requester', label: 'list.col.requester' },
   { key: 'status', label: 'list.col.status' },
   { key: 'priority', label: 'list.col.priority' },
-  { key: 'amount', label: 'list.col.amount', align: 'end' },
+  { key: 'amount', label: 'list.col.amount', align: 'right' },
   { key: 'dueAt', label: 'list.col.sla' },
 ];
 
 @Component({
   selector: 'app-request-list',
   imports: [
-    RouterLink,
+    FormsModule,
     TranslatePipe,
     MoneyPipe,
     StatusBadge,
     PriorityBadge,
     SlaMeter,
-    Avatar,
-    Icon,
+    AppAvatar,
+    AppButton,
+    AppCard,
+    AppEmpty,
+    AppInput,
+    AppList,
+    AppPageHeader,
+    AppResult,
+    AppSkeleton,
+    AppTable,
+    AppTableCell,
+    AppTag,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './request-list.html',
@@ -77,7 +103,20 @@ export class RequestList {
   private readonly i18n = inject(TranslationService);
   private readonly toast = inject(ToastService);
   protected readonly statuses = REQUEST_STATUSES;
-  protected readonly columns = COLUMNS;
+  protected readonly viewport = inject(ViewportService);
+  protected readonly columns = computed<AppTableColumn[]>(() => {
+    this.i18n.locale();
+    return COLUMNS.map((column) => ({
+      key: column.key,
+      title: this.i18n.translateDynamic(column.label),
+      align: column.align,
+      sortable: true,
+    }));
+  });
+  protected readonly tableSort = computed<AppTableSort | null>(() => {
+    const current = this.sort();
+    return current ? { key: current.key, direction: current.direction } : null;
+  });
   protected readonly skeletonRows = SKELETON_ROWS;
 
   protected readonly status = signal<RequestStatus | ''>('');
@@ -111,8 +150,8 @@ export class RequestList {
     () => this.status() !== '' || this.search.query() !== '',
   );
 
-  protected onQuery(event: Event): void {
-    this.search.set((event.target as HTMLInputElement).value);
+  protected onQuery(value: string | number | null): void {
+    this.search.set(String(value ?? ''));
   }
 
   protected showMore(): void {
@@ -124,21 +163,25 @@ export class RequestList {
     this.status.set(status);
   }
 
-  protected onSort(key: SortKey): void {
-    this.sort.update((current) => nextSort(current, key));
+  private readonly router = inject(Router);
+
+  protected goNew(): void {
+    void this.router.navigateByUrl('/requests/new');
   }
 
-  protected ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
-    const current = this.sort();
-    if (current?.key !== key) return 'none';
-    return current.direction === 'asc' ? 'ascending' : 'descending';
+  protected onSort(event: AppTableSort): void {
+    this.sort.set(
+      event.direction ? { key: event.key as SortKey, direction: event.direction } : null,
+    );
   }
 
-  protected sortIcon(key: SortKey): 'sortAsc' | 'sortDesc' | 'sortNone' {
-    const current = this.sort();
-    if (current?.key !== key) return 'sortNone';
-    return current.direction === 'asc' ? 'sortAsc' : 'sortDesc';
-  }
+  protected totalLabel = (total: number): string =>
+    this.i18n.translateDynamic('list.count', { count: total });
+
+  protected readonly sortLabel = computed(() => {
+    this.i18n.locale();
+    return this.i18n.translateDynamic('list.sortBy', { column: '' }).trim();
+  });
 
   /** Baixa a lista que está na tela (já filtrada e ordenada) como CSV para planilha. */
   protected exportCsv(): void {

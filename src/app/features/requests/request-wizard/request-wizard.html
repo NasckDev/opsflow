@@ -1,156 +1,180 @@
-<section class="page" aria-labelledby="wizard-title">
-  <header class="page-header">
-    <div class="titles">
-      <h1 id="wizard-title">{{ 'wizard.title' | t }}</h1>
-      <p class="muted">{{ 'wizard.subtitle' | t }}</p>
+<section class="page narrow" aria-labelledby="wizard-title">
+  <app-page-header
+    titleId="wizard-title"
+    [title]="'wizard.title' | t"
+    [subtitle]="'wizard.subtitle' | t"
+    [breadcrumb]="[
+      { label: 'OpsFlow', href: '#/inbox' },
+      { label: 'app.nav.requests' | t, href: '#/requests' },
+      { label: 'app.nav.new' | t }
+    ]"
+  >
+    <div appPageActions>
+      <app-button variant="text" (click)="cancel()">{{ 'wizard.cancel' | t }}</app-button>
     </div>
-    <a class="btn btn-ghost cancel" routerLink="/requests">{{ 'wizard.cancel' | t }}</a>
-  </header>
+  </app-page-header>
 
   @if (!session.can('request.create')) {
-    <div class="state state-error" role="alert">
-      <h2>{{ 'wizard.forbidden' | t }}</h2>
-    </div>
+    <app-alert type="error" [message]="'wizard.forbidden' | t" />
   } @else {
-    <ol class="stepper" [attr.aria-label]="'wizard.step' | t: { current: step() + 1, total: steps.length }">
-      @for (label of steps; track label; let i = $index) {
-        <li [class.active]="i === step()" [class.done]="i < step()" [attr.aria-current]="i === step() ? 'step' : null">
-          <span class="step-index" aria-hidden="true">
-            @if (i < step()) {
-              <app-icon name="check" [size]="1" />
-            } @else {
-              {{ i + 1 }}
-            }
-          </span>
-          <span class="step-label">{{ label | t }}</span>
-        </li>
-      }
-    </ol>
-    <div class="progress" aria-hidden="true"><span [style.width.%]="((step() + 1) / steps.length) * 100"></span></div>
+    <app-card>
+      <app-steps
+        [steps]="stepItems()"
+        [current]="step()"
+        [ariaLabel]="'wizard.step' | t: { current: step() + 1, total: steps.length }"
+        size="small"
+        [direction]="viewport.mobile() ? 'vertical' : 'horizontal'"
+      />
+    </app-card>
 
     @if (restored(); as draft) {
-      <p class="draft-banner" role="status">
-        <app-icon name="history" [size]="1" />
-        <span>{{ 'wizard.draftRestored' | t }}</span>
-        <button type="button" class="btn btn-ghost" (click)="discardDraft()">{{ 'wizard.draftDiscard' | t }}</button>
-      </p>
+      <app-alert type="info" [message]="'wizard.draftRestored' | t">
+        <app-button size="small" (click)="discardDraft()">{{ 'wizard.draftDiscard' | t }}</app-button>
+      </app-alert>
     }
-    <form [formGroup]="form" (ngSubmit)="isLastStep() ? save(true) : next()" novalidate>
-      <div #stepPanel class="panel form-panel page-enter">
-        @if (errorCount() > 0) {
-          <p class="error-summary" role="alert">{{ 'wizard.errorsSummary' | t: { count: errorCount() } }}</p>
-        }
 
-        @switch (step()) {
-          @case (0) {
-            <fieldset formGroupName="details">
-              <h2 tabindex="-1">{{ 'wizard.step.details' | t }}</h2>
-              @let title = form.controls.details.controls.title;
-              <div class="field">
-                <label for="title">{{ 'wizard.field.title' | t }} *</label>
-                <input id="title" formControlName="title" autocomplete="off" maxlength="200"
-                  [attr.aria-invalid]="error(title) ? 'true' : null"
-                  [attr.aria-describedby]="error(title) ? 'title-error' : null" />
-                @if (error(title); as e) {
-                  <p id="title-error" class="field-error">{{ e.key | t: e.params }}</p>
-                }
-              </div>
-              <div class="field">
-                <label for="description">{{ 'wizard.field.description' | t }}</label>
-                <textarea id="description" formControlName="description" rows="3" maxlength="2000"></textarea>
-              </div>
-              <div class="grid-2">
-                <div class="field">
-                  <label for="category">{{ 'wizard.field.category' | t }}</label>
-                  <select id="category" formControlName="category">
-                    @for (item of categories; track item) {
-                      <option [value]="item">{{ 'category.' + item | t }}</option>
-                    }
-                  </select>
-                </div>
-                <div class="field">
-                  <label for="priority">{{ 'wizard.field.priority' | t }}</label>
-                  <select id="priority" formControlName="priority">
-                    @for (item of priorities; track item) {
-                      <option [value]="item">{{ 'priority.' + item | t }}</option>
-                    }
-                  </select>
-                </div>
-              </div>
-              @let amount = form.controls.details.controls.amount;
-              <div class="field">
-                <label for="amount">{{ 'wizard.field.amount' | t }} *</label>
-                <input id="amount" type="number" inputmode="decimal" min="0" max="1000000000" step="0.01" formControlName="amount"
-                  [attr.aria-invalid]="error(amount) ? 'true' : null"
-                  [attr.aria-describedby]="error(amount) ? 'amount-error' : null" />
-                @if (error(amount); as e) {
-                  <p id="amount-error" class="field-error">{{ e.key | t: e.params }}</p>
-                }
-              </div>
-            </fieldset>
+    <form [formGroup]="form" (ngSubmit)="isLastStep() ? save(true) : next()" novalidate>
+      <app-card>
+        <div #stepPanel class="form-panel">
+          @if (errorCount() > 0) {
+            <app-alert type="error" [message]="'wizard.errorsSummary' | t: { count: errorCount() }" />
           }
-          @case (1) {
-            <fieldset formGroupName="deadline">
-              <h2 tabindex="-1">{{ 'wizard.step.deadline' | t }}</h2>
-              @let dueAt = form.controls.deadline.controls.dueAt;
-              <div class="field">
-                <label for="dueAt">{{ 'wizard.field.dueAt' | t }} *</label>
-                <input id="dueAt" type="datetime-local" formControlName="dueAt"
-                  [attr.aria-invalid]="error(dueAt) ? 'true' : null"
-                  [attr.aria-describedby]="error(dueAt) ? 'dueAt-error' : null" />
-                @if (error(dueAt); as e) {
-                  <p id="dueAt-error" class="field-error">{{ e.key | t: e.params }}</p>
-                }
-              </div>
-              <div class="field">
-                <label for="documents">{{ 'wizard.field.documents' | t }}</label>
-                <textarea id="documents" formControlName="documents" rows="4" maxlength="2000" placeholder="orcamento.pdf" aria-describedby="documents-hint"></textarea>
-                <p id="documents-hint" class="hint">{{ 'wizard.docsHint' | t }}</p>
-              </div>
-            </fieldset>
-          }
-          @case (2) {
-            <h2 tabindex="-1">{{ 'wizard.step.review' | t }}</h2>
-            <p class="muted">{{ 'wizard.reviewHint' | t }}</p>
-            @let summary = review();
-            <div class="summary-card" data-testid="wizard-summary">
-              <p class="summary-kicker">{{ 'wizard.summary' | t }}</p>
-              <p class="summary-title">{{ summary.title }}</p>
-              <p class="summary-amount num">{{ summary.amount | money }}</p>
-              <dl class="summary">
-                <div><dt>{{ 'wizard.field.category' | t }}</dt><dd>{{ 'category.' + summary.category | t }}</dd></div>
-                <div><dt>{{ 'wizard.field.priority' | t }}</dt><dd>{{ 'priority.' + summary.priority | t }}</dd></div>
-                <div><dt>{{ 'wizard.field.dueAt' | t }}</dt><dd>{{ summary.dueAt | localDate }}</dd></div>
-                <div>
-                  <dt>{{ 'detail.documents' | t }}</dt>
-                  <dd>{{ documents().length ? documents().join(', ') : ('detail.noDocuments' | t) }}</dd>
+
+          @switch (step()) {
+            @case (0) {
+              <fieldset formGroupName="details">
+                <h2 tabindex="-1">{{ 'wizard.step.details' | t }}</h2>
+                @let title = form.controls.details.controls.title;
+                <app-form-item
+                  forId="title"
+                  [label]="'wizard.field.title' | t"
+                  [required]="true"
+                  [error]="errorText(title)"
+                >
+                  <app-input
+                    formControlName="title"
+                    inputId="title"
+                    [maxlength]="200"
+                    [invalid]="!!error(title)"
+                    [describedBy]="error(title) ? 'title-error' : ''"
+                  />
+                </app-form-item>
+                <app-form-item forId="description" [label]="'wizard.field.description' | t">
+                  <app-input
+                    type="textarea"
+                    formControlName="description"
+                    inputId="description"
+                    [rows]="3"
+                    [maxlength]="2000"
+                  />
+                </app-form-item>
+                <div class="grid-2">
+                  <app-form-item forId="category" [label]="'wizard.field.category' | t">
+                    <app-select formControlName="category" inputId="category" [options]="categoryOptions()" />
+                  </app-form-item>
+                  <app-form-item forId="priority" [label]="'wizard.field.priority' | t">
+                    <app-select formControlName="priority" inputId="priority" [options]="priorityOptions()" />
+                  </app-form-item>
                 </div>
-              </dl>
-            </div>
-            @if (saveError()) {
-              <p class="error-summary" role="alert">{{ 'wizard.saveError' | t }}</p>
+                @let amount = form.controls.details.controls.amount;
+                <app-form-item
+                  forId="amount"
+                  [label]="'wizard.field.amount' | t"
+                  [required]="true"
+                  [error]="errorText(amount)"
+                >
+                  <app-input
+                    type="number"
+                    formControlName="amount"
+                    inputId="amount"
+                    inputmode="decimal"
+                    [min]="0"
+                    [max]="1000000000"
+                    step="0.01"
+                    [invalid]="!!error(amount)"
+                    [describedBy]="error(amount) ? 'amount-error' : ''"
+                  />
+                </app-form-item>
+              </fieldset>
+            }
+            @case (1) {
+              <fieldset formGroupName="deadline">
+                <h2 tabindex="-1">{{ 'wizard.step.deadline' | t }}</h2>
+                @let dueAt = form.controls.deadline.controls.dueAt;
+                <app-form-item
+                  forId="dueAt"
+                  [label]="'wizard.field.dueAt' | t"
+                  [required]="true"
+                  [error]="errorText(dueAt)"
+                >
+                  <app-date-picker
+                    formControlName="dueAt"
+                    inputId="dueAt"
+                    [ariaLabel]="'wizard.field.dueAt' | t"
+                    [invalid]="!!error(dueAt)"
+                    [describedBy]="error(dueAt) ? 'dueAt-error' : ''"
+                  />
+                </app-form-item>
+                <app-form-item
+                  forId="documents"
+                  [label]="'wizard.field.documents' | t"
+                  [hint]="'wizard.docsHint' | t"
+                >
+                  <app-input
+                    type="textarea"
+                    formControlName="documents"
+                    inputId="documents"
+                    placeholder="orcamento.pdf"
+                    describedBy="documents-hint"
+                    [rows]="4"
+                    [maxlength]="2000"
+                  />
+                </app-form-item>
+              </fieldset>
+            }
+            @case (2) {
+              <h2 tabindex="-1">{{ 'wizard.step.review' | t }}</h2>
+              <p class="muted">{{ 'wizard.reviewHint' | t }}</p>
+              @let summary = review();
+              <div class="summary-card" data-testid="wizard-summary">
+                <p class="summary-kicker muted">{{ 'wizard.summary' | t }}</p>
+                <p class="summary-title">{{ summary.title }}</p>
+                <p class="summary-amount num">{{ summary.amount | money }}</p>
+                <dl class="summary">
+                  <div><dt>{{ 'wizard.field.category' | t }}</dt><dd>{{ 'category.' + summary.category | t }}</dd></div>
+                  <div><dt>{{ 'wizard.field.priority' | t }}</dt><dd>{{ 'priority.' + summary.priority | t }}</dd></div>
+                  <div><dt>{{ 'wizard.field.dueAt' | t }}</dt><dd>{{ summary.dueAt | localDate }}</dd></div>
+                  <div>
+                    <dt>{{ 'detail.documents' | t }}</dt>
+                    <dd>{{ documents().length ? documents().join(', ') : ('detail.noDocuments' | t) }}</dd>
+                  </div>
+                </dl>
+              </div>
+              @if (saveError()) {
+                <app-alert type="error" [message]="'wizard.saveError' | t" />
+              }
             }
           }
-        }
-      </div>
+        </div>
+      </app-card>
 
       @if (savedAt(); as stamp) {
-        <p class="autosave hint" role="status">
-          <app-icon name="check" [size]="0.875" />{{ 'wizard.autosaved' | t: { time: (stamp | localDate) } }}
+        <p class="autosave muted" role="status">
+          {{ 'wizard.autosaved' | t: { time: (stamp | localDate) } }}
         </p>
       }
       <div class="wizard-footer">
         @if (step() > 0) {
-          <button type="button" class="btn back" (click)="back()" [attr.aria-label]="'wizard.back' | t">
-            <app-icon name="arrowLeft" /><span class="back-label">{{ 'wizard.back' | t }}</span>
-          </button>
+          <app-button icon="arrow-left" (click)="back()">{{ 'wizard.back' | t }}</app-button>
         }
         <span class="spacer"></span>
         @if (isLastStep()) {
-          <button type="button" class="btn btn-ghost draft" [disabled]="saving()" (click)="save(false)">{{ 'wizard.saveDraft' | t }}</button>
-          <button type="submit" class="btn btn-primary main" [disabled]="saving()"><app-icon name="send" />{{ 'wizard.submit' | t }}</button>
+          <app-button variant="text" [disabled]="saving()" (click)="save(false)">{{ 'wizard.saveDraft' | t }}</app-button>
+          <app-button variant="primary" htmlType="submit" icon="send" [loading]="saving()">
+            {{ 'wizard.submit' | t }}
+          </app-button>
         } @else {
-          <button type="submit" class="btn btn-primary main">{{ 'wizard.next' | t }}<app-icon name="arrowRight" /></button>
+          <app-button variant="primary" htmlType="submit">{{ 'wizard.next' | t }}</app-button>
         }
       </div>
     </form>

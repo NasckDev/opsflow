@@ -6,167 +6,160 @@
   <span class="demo-hint">{{ 'app.demoHint' | t }}</span>
 </div>
 
-<div class="shell">
-  <aside class="sidebar">
-    <a class="brand" routerLink="/inbox">
+<app-layout [mobile]="viewport.mobile()" [collapsed]="collapsed()">
+  <div appLayoutSider class="sider-body">
+    <a class="brand" href="#/inbox">
       <app-logo />
-      <span class="brand-text">
-        <strong>OpsFlow</strong>
-        <small>{{ 'app.tagline' | t }}</small>
-      </span>
-    </a>
-
-    <nav [attr.aria-label]="'app.nav.main' | t">
-      <p class="nav-label">{{ 'app.nav.workspace' | t }}</p>
-      <a class="nav-item" routerLink="/inbox" [class.active]="section() === 'inbox'" [attr.aria-current]="section() === 'inbox' ? 'page' : null">
-        <app-icon name="inbox" />{{ 'app.nav.inbox' | t }}
-        @if (inboxCount() > 0) {
-          <span class="count-pill">{{ inboxCount() }}</span>
-        }
-      </a>
-      <a class="nav-item" routerLink="/requests" [class.active]="section() === 'requests'" [attr.aria-current]="section() === 'requests' ? 'page' : null">
-        <app-icon name="list" />{{ 'app.nav.requests' | t }}
-      </a>
-      <a class="nav-item" routerLink="/board" [class.active]="section() === 'board'" [attr.aria-current]="section() === 'board' ? 'page' : null">
-        <app-icon name="board" />{{ 'app.nav.board' | t }}
-      </a>
-      @if (session.can('audit.view')) {
-        <a class="nav-item" routerLink="/analytics" [class.active]="section() === 'analytics'" [attr.aria-current]="section() === 'analytics' ? 'page' : null">
-          <app-icon name="chart" />{{ 'app.nav.analytics' | t }}
-        </a>
+      @if (!collapsed()) {
+        <span class="brand-text">
+          <strong>OpsFlow</strong>
+          <small>{{ 'app.tagline' | t }}</small>
+        </span>
       }
-      <p class="nav-label second">{{ 'app.nav.manage' | t }}</p>
-      <a class="nav-item" routerLink="/admin" [class.active]="section() === 'admin'" [attr.aria-current]="section() === 'admin' ? 'page' : null">
-        <app-icon name="shield" />{{ 'app.nav.admin' | t }}
-      </a>
-    </nav>
-
+    </a>
     @if (session.can('request.create')) {
-      <a class="btn btn-primary new-cta" routerLink="/requests/new">
-        <app-icon name="plus" />{{ 'app.nav.new' | t }}
-      </a>
+      <div class="new-cta">
+        @if (collapsed()) {
+          <app-icon-button
+            icon="plus"
+            variant="primary"
+            [label]="'app.nav.new' | t"
+            (click)="goNew()"
+          />
+        } @else {
+          <app-button variant="primary" icon="plus" [block]="true" (click)="goNew()">
+            {{ 'app.nav.new' | t }}
+          </app-button>
+        }
+      </div>
     }
-    <p class="sidebar-foot">{{ 'app.footer' | t }}</p>
-  </aside>
+    <nav [attr.aria-label]="'app.nav.main' | t">
+      <app-menu [groups]="menu()" [selectedKey]="section()" [collapsed]="collapsed()" />
+    </nav>
+    @if (!collapsed()) {
+      <p class="sidebar-foot">{{ 'app.footer' | t }}</p>
+    }
+  </div>
 
-  <div class="workspace">
-    <header class="topbar">
-      <a class="brand brand-mobile" routerLink="/inbox" aria-label="OpsFlow">
+  <div appLayoutHeader class="header-row" role="banner">
+    <app-icon-button
+      [icon]="viewport.mobile() ? 'menu' : collapsed() ? 'menu-unfold' : 'menu-fold'"
+      [label]="(viewport.mobile() ? 'app.menu.open' : collapsed() ? 'app.menu.expand' : 'app.menu.collapse') | t"
+      (click)="toggleSider()"
+    />
+    @if (viewport.mobile()) {
+      <a class="brand brand-mobile" href="#/inbox" aria-label="OpsFlow">
         <app-logo />
         <strong>OpsFlow</strong>
       </a>
-
-      <div class="search">
-        <app-icon name="search" />
-        <input
+    } @else {
+      <div class="search" data-global-search>
+        <app-input
           type="search"
-          data-global-search
-          [attr.aria-label]="'app.search' | t"
+          prefixIcon="search"
+          [clearable]="true"
+          [clearLabel]="'list.clear' | t"
+          [ariaLabel]="'app.search' | t"
           [placeholder]="'app.searchPlaceholder' | t"
-          [value]="search.query()"
-          (input)="onSearch($event)"
+          [ngModel]="search.query()"
+          (ngModelChange)="onSearch($event)"
         />
-        @if (search.query()) {
-          <button type="button" class="clear" (click)="clearSearch()" [attr.aria-label]="'list.clear' | t">
-            <app-icon name="x" [size]="0.875" />
-          </button>
-        }
       </div>
-
-      <div class="actions">
-        <button type="button" class="palette-trigger" (click)="openPalette()">
-          <app-icon name="command" [size]="1" />
-          <span>{{ 'palette.open' | t }}</span>
-          <kbd>Ctrl K</kbd>
-        </button>
-        <button
-          type="button"
-          class="icon-btn"
-          aria-haspopup="dialog"
-          [attr.aria-expanded]="popover.openKey() === 'notifications'"
-                    (click)="toggleNotifications($event)"
-        >
-          <app-icon name="bell" [size]="1.25" />
-          <span class="visually-hidden">{{ 'notifications.title' | t }}</span>
-          @if (notificationCount() > 0) {
-            <span class="dot">{{ notificationCount() }}</span>
-          }
-        </button>
-        <button
-          type="button"
-          class="profile-trigger"
-          aria-haspopup="dialog"
-          [attr.aria-expanded]="popover.openKey() === 'profile'"
-                    (click)="toggleProfile($event)"
-        >
-          <app-avatar [name]="session.actor().name" />
-          <span class="visually-hidden">{{ 'app.profile' | t }}:</span>
-          <span class="profile-text">
-            <strong>{{ session.actor().name }}</strong>
-            <small>{{ 'role.' + session.currentRole() | t }}</small>
-          </span>
-          <app-icon class="chev" name="chevronDown" [size]="1" />
-        </button>
-      </div>
-
-      <span class="role-pill"><app-icon name="user" [size]="0.875" />{{ 'role.' + session.currentRole() | t }}</span>
+    }
+    <span class="spacer"></span>
+    @if (!viewport.mobile()) {
+      <app-button icon="search" (click)="openPalette()">
+        {{ 'palette.open' | t }} <kbd>Ctrl K</kbd>
+      </app-button>
+    } @else {
+      <span class="role-pill">{{ 'role.' + session.currentRole() | t }}</span>
+    }
+    <app-badge [count]="notificationCount()">
+      <app-icon-button
+        icon="bell"
+        haspopup="dialog"
+        [label]="'notifications.title' | t"
+        [expanded]="panels.openKey() === 'notifications'"
+        (click)="panels.toggle('notifications')"
+      />
+    </app-badge>
+    @if (!viewport.mobile()) {
       <button
         type="button"
-        class="icon-btn bell-mobile"
+        class="profile-trigger"
         aria-haspopup="dialog"
-        [attr.aria-expanded]="popover.openKey() === 'notifications'"
-                (click)="toggleNotifications($event)"
+        [attr.aria-expanded]="panels.openKey() === 'profile'"
+        (click)="panels.toggle('profile')"
       >
-        <app-icon name="bell" [size]="1.25" />
-        <span class="visually-hidden">{{ 'notifications.title' | t }}</span>
-        @if (notificationCount() > 0) {
-          <span class="dot">{{ notificationCount() }}</span>
-        }
+        <app-avatar [name]="session.actor().name" />
+        <span class="visually-hidden">{{ 'app.profile' | t }}:</span>
+        <span class="profile-text">
+          <strong>{{ session.actor().name }}</strong>
+          <small>{{ 'role.' + session.currentRole() | t }}</small>
+        </span>
       </button>
-    </header>
-
-    <main id="main" #main tabindex="-1">
-      <router-outlet />
-    </main>
+    }
   </div>
 
-  <nav class="bottomnav" [attr.aria-label]="'app.nav.main' | t">
-    <a class="tab" routerLink="/inbox" [class.active]="section() === 'inbox'" [attr.aria-current]="section() === 'inbox' ? 'page' : null">
-      <span class="tab-icon">
-        <app-icon name="inbox" [size]="1.375" />
-        @if (inboxCount() > 0) {
-          <span class="dot" aria-hidden="true">{{ inboxCount() }}</span>
-        }
-      </span>
-      <span>{{ 'app.nav.inboxShort' | t }}</span>
-    </a>
-    @if (requesterTab()) {
-      <a class="tab" routerLink="/requests/new" [class.active]="section() === 'new'" [attr.aria-current]="section() === 'new' ? 'page' : null">
-        <app-icon name="plusCircle" [size]="1.375" />
-        <span>{{ 'app.nav.newShort' | t }}</span>
-      </a>
-    } @else {
-      <a class="tab" routerLink="/board" [class.active]="section() === 'board'" [attr.aria-current]="section() === 'board' ? 'page' : null">
-        <app-icon name="board" [size]="1.375" />
-        <span>{{ 'app.nav.board' | t }}</span>
-      </a>
-    }
-    <a class="tab" routerLink="/requests" [class.active]="section() === 'requests'" [attr.aria-current]="section() === 'requests' ? 'page' : null">
-      <app-icon name="list" [size]="1.375" />
-      <span>{{ 'app.nav.requestsShort' | t }}</span>
-    </a>
-    <button
-      type="button"
-      class="tab"
-      aria-haspopup="dialog"
-      [class.active]="moreActive()"
-      [attr.aria-expanded]="popover.openKey() === 'more' || popover.openKey() === 'profile'"
-      (click)="toggleMore($event)"
-    >
-      <app-icon name="more" [size]="1.375" />
-      <span>{{ 'app.nav.moreShort' | t }}</span>
-    </button>
-  </nav>
-</div>
+  <main id="main" #main tabindex="-1" [class.has-bottom-nav]="viewport.mobile()">
+    <router-outlet />
+  </main>
+</app-layout>
 
-<app-toasts />
+@if (viewport.mobile()) {
+  <app-bottom-nav
+    [items]="bottomItems()"
+    [activeKey]="bottomActive()"
+    [ariaLabel]="'app.nav.main' | t"
+    (pressed)="onBottom($event)"
+  />
+}
+
+<app-drawer
+  [open]="panels.openKey() === 'menu'"
+  [title]="'OpsFlow'"
+  placement="left"
+  [width]="viewport.mobile() ? 300 : 320"
+  (closed)="panels.close()"
+>
+  <nav [attr.aria-label]="'app.nav.main' | t">
+    <app-menu [groups]="menu()" [selectedKey]="section()" (selected)="panels.close()" />
+  </nav>
+</app-drawer>
+
+<app-drawer
+  [open]="panels.openKey() === 'notifications'"
+  [title]="'notifications.title' | t"
+  [placement]="viewport.mobile() ? 'bottom' : 'right'"
+  [width]="400"
+  [height]="'75%'"
+  (closed)="panels.close()"
+>
+  <app-notification-panel />
+</app-drawer>
+
+<app-drawer
+  [open]="panels.openKey() === 'profile'"
+  [title]="'app.profile' | t"
+  [placement]="viewport.mobile() ? 'bottom' : 'right'"
+  [width]="400"
+  [height]="'85%'"
+  (closed)="panels.close()"
+>
+  <app-profile-panel />
+</app-drawer>
+
+<app-drawer
+  [open]="panels.openKey() === 'more'"
+  [title]="'app.nav.more' | t"
+  placement="bottom"
+  height="auto"
+  (closed)="panels.close()"
+>
+  <app-more-panel />
+</app-drawer>
+
+<app-command-palette />
+<app-shortcuts-dialog />
+<app-comment-prompt />
+<app-feedback-host />

@@ -1,4 +1,4 @@
-import { hueOf, initialsOf } from './avatar';
+import { hueOf, initialsOf } from '../ui';
 
 describe('initialsOf', () => {
   it.each([

@@ -12,7 +12,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { AbstractControl, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { ViewportService } from '../../../core/ui/viewport.service';
 import { debounceTime, finalize } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RequestsApi } from '../../../core/api/requests.api';
@@ -22,7 +23,19 @@ import { TranslationService } from '../../../core/i18n/translation.service';
 import { SessionStore } from '../../../core/session/session.store';
 import { readStorage, writeStorage } from '../../../core/storage';
 import { RequestsStore } from '../../../core/requests/requests.store';
-import { Icon } from '../../../shared/icon';
+import {
+  AppAlert,
+  AppButton,
+  AppCard,
+  AppDatePicker,
+  AppFormItem,
+  AppInput,
+  AppPageHeader,
+  AppSelect,
+  AppSelectOption,
+  AppStep,
+  AppSteps,
+} from '../../../ui';
 import { CATEGORIES, PRIORITIES } from '../../../domain/request.model';
 import {
   FieldError,
@@ -46,7 +59,21 @@ const STEPS = ['wizard.step.details', 'wizard.step.deadline', 'wizard.step.revie
 
 @Component({
   selector: 'app-request-wizard',
-  imports: [ReactiveFormsModule, RouterLink, TranslatePipe, MoneyPipe, LocalDatePipe, Icon],
+  imports: [
+    ReactiveFormsModule,
+    TranslatePipe,
+    MoneyPipe,
+    LocalDatePipe,
+    AppAlert,
+    AppButton,
+    AppCard,
+    AppDatePicker,
+    AppFormItem,
+    AppInput,
+    AppPageHeader,
+    AppSelect,
+    AppSteps,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './request-wizard.html',
   styleUrl: './request-wizard.scss',
@@ -58,6 +85,7 @@ export class RequestWizard {
   private readonly i18n = inject(TranslationService);
   private readonly injector = inject(Injector);
   protected readonly session = inject(SessionStore);
+  protected readonly viewport = inject(ViewportService);
 
   private readonly store = inject(RequestsStore);
   private readonly destroyRef = inject(DestroyRef);
@@ -132,6 +160,37 @@ export class RequestWizard {
 
   protected error(control: AbstractControl): FieldError | null {
     return control.touched ? firstError(control) : null;
+  }
+
+  /** Texto do erro do campo (ou null), já no idioma ativo. */
+  protected errorText(control: AbstractControl): string | null {
+    const found = this.error(control);
+    return found ? this.i18n.translateDynamic(found.key, found.params) : null;
+  }
+
+  protected readonly categoryOptions = computed<AppSelectOption[]>(() => {
+    this.i18n.locale();
+    return CATEGORIES.map((item) => ({
+      value: item,
+      label: this.i18n.translateDynamic(`category.${item}`),
+    }));
+  });
+
+  protected readonly priorityOptions = computed<AppSelectOption[]>(() => {
+    this.i18n.locale();
+    return PRIORITIES.map((item) => ({
+      value: item,
+      label: this.i18n.translateDynamic(`priority.${item}`),
+    }));
+  });
+
+  protected readonly stepItems = computed<AppStep[]>(() => {
+    this.i18n.locale();
+    return STEPS.map((label) => ({ title: this.i18n.translateDynamic(label) }));
+  });
+
+  protected cancel(): void {
+    void this.router.navigateByUrl('/requests');
   }
 
   protected documents(): string[] {

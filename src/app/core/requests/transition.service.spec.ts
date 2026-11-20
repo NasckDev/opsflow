@@ -1,7 +1,7 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { Dialog } from '@angular/cdk/dialog';
 import { TestBed } from '@angular/core/testing';
 import { MockBackend, mockApiInterceptor } from '../api/mock-api.interceptor';
+import { CommentPromptService } from '../ui/comment-prompt';
 import { ToastService } from '../ui/toast.service';
 import { RequestsStore } from './requests.store';
 import { TransitionService, UNDO_WINDOW_MS } from './transition.service';
@@ -99,15 +99,15 @@ describe('TransitionService', () => {
     if (!overdue) throw new Error('req-3 missing');
     const outcome = await service.act(overdue, 'approve', { prompt: false, quiet: true });
     expect(outcome.error).toBe('justification_required');
-    expect(TestBed.inject(Dialog).openDialogs).toHaveLength(0);
+    expect(TestBed.inject(CommentPromptService).open()).toBeNull();
   });
 
   it('returns cancelled when the user closes the comment dialog', async () => {
     const { store, service } = await setup();
     const pending = service.act(find(store, 'req-1'), 'reject');
-    await vi.dynamicImportSettled(); // o diálogo é carregado sob demanda
     await vi.advanceTimersByTimeAsync(50);
-    TestBed.inject(Dialog).closeAll();
+    expect(TestBed.inject(CommentPromptService).open()).not.toBeNull();
+    TestBed.inject(CommentPromptService).answer(undefined);
     expect(await pending).toEqual({ request: null, error: null, cancelled: true });
   });
 

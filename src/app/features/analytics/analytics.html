@@ -1,142 +1,137 @@
 <section class="page" aria-labelledby="analytics-title">
-  <header class="page-header">
-    <div class="titles">
-      <h1 id="analytics-title" tabindex="-1">{{ 'analytics.title' | t }}</h1>
-      <p class="muted">{{ 'analytics.subtitle' | t }}</p>
-    </div>
-  </header>
+  <app-page-header
+    titleId="analytics-title"
+    [title]="'analytics.title' | t"
+    [subtitle]="'analytics.subtitle' | t"
+    [breadcrumb]="[{ label: 'OpsFlow', href: '#/inbox' }, { label: 'app.nav.analytics' | t }]"
+  />
 
   @if (locked()) {
-    <div class="state">
-      <app-icon name="lock" [size]="2" />
-      <h2>{{ 'analytics.locked.title' | t }}</h2>
-      <p>{{ 'analytics.locked.hint' | t }}</p>
-    </div>
+    <app-card>
+      <app-empty [title]="'analytics.locked.title' | t" [description]="'analytics.locked.hint' | t" />
+    </app-card>
   } @else {
-  @switch (status()) {
-    @case ('error') {
-      <div class="state state-error" role="alert">
-        <app-icon name="wifiOff" [size]="2" />
-        <h2>{{ 'list.error.title' | t }}</h2>
-        <p>{{ 'list.error.hint' | t }}</p>
-        <button type="button" class="btn btn-primary" (click)="retry()"><app-icon name="refresh" />{{ 'list.retry' | t }}</button>
-      </div>
-    }
-    @case ('loaded') {
-      <ul class="kpis">
-        <li class="kpi card">
-          <span class="kpi-icon"><app-icon name="list" /></span>
-          <span class="kpi-label">{{ 'analytics.kpi.total' | t }}</span>
-          <strong class="kpi-value num"><app-counter [value]="data().total" /></strong>
-        </li>
-        <li class="kpi card">
-          <span class="kpi-icon"><app-icon name="clock" /></span>
-          <span class="kpi-label">{{ 'analytics.kpi.open' | t }}</span>
-          <strong class="kpi-value num"><app-counter [value]="data().open" /></strong>
-        </li>
-        <li class="kpi card" data-tone="success">
-          <span class="kpi-icon"><app-icon name="checkCircle" /></span>
-          <span class="kpi-label">{{ 'analytics.kpi.compliance' | t }}</span>
-          <strong class="kpi-value num">
-            @if (compliance() === null) {
-              —
-            } @else {
-              <app-counter [value]="compliance() ?? 0" suffix="%" />
-            }
-          </strong>
-        </li>
-        <li class="kpi card" [attr.data-tone]="data().sla.openBreached > 0 ? 'danger' : null">
-          <span class="kpi-icon"><app-icon name="alert" /></span>
-          <span class="kpi-label">{{ 'analytics.kpi.breached' | t }}</span>
-          <strong class="kpi-value num"><app-counter [value]="data().sla.openBreached" /></strong>
-        </li>
-      </ul>
-
-      @if (slowestStage(); as slowest) {
-        <p class="insight">
-          <app-icon name="trendingUp" />
-          {{ 'analytics.insight' | t: { stage: slowest.label, time: slowest.display } }}
-        </p>
+    @switch (status()) {
+      @case ('error') {
+        <app-result status="error" [title]="'list.error.title' | t" [description]="'list.error.hint' | t">
+          <app-button variant="primary" icon="reload" (click)="retry()">{{ 'list.retry' | t }}</app-button>
+        </app-result>
       }
+      @case ('loaded') {
+        <ul class="kpis">
+          <li>
+            <app-card size="small">
+              <app-statistic [title]="'analytics.kpi.total' | t" [value]="data().total" icon="unordered-list" />
+            </app-card>
+          </li>
+          <li>
+            <app-card size="small">
+              <app-statistic [title]="'analytics.kpi.open' | t" [value]="data().open" icon="clock-circle" />
+            </app-card>
+          </li>
+          <li>
+            <app-card size="small">
+              <app-statistic
+                [title]="'analytics.kpi.compliance' | t"
+                [value]="compliance() ?? '—'"
+                [suffix]="compliance() === null ? '' : '%'"
+                icon="check-circle"
+                tone="success"
+              />
+            </app-card>
+          </li>
+          <li>
+            <app-card size="small">
+              <app-statistic
+                [title]="'analytics.kpi.breached' | t"
+                [value]="data().sla.openBreached"
+                icon="exclamation-circle"
+                [tone]="data().sla.openBreached > 0 ? 'danger' : 'default'"
+              />
+            </app-card>
+          </li>
+        </ul>
 
-      <div class="grid">
-        <app-chart-frame class="wide" [heading]="'analytics.throughput' | t" [caption]="'analytics.throughput.hint' | t">
-          <app-bar-chart chart [categories]="weekLabels()" [series]="throughputSeries()" [description]="'analytics.throughput.desc' | t" />
-          <table table>
-            <caption class="visually-hidden">{{ 'analytics.throughput' | t }}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{{ 'analytics.week' | t }}</th>
-                <th scope="col" class="end">{{ 'analytics.created' | t }}</th>
-                <th scope="col" class="end">{{ 'analytics.decided' | t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (point of data().throughput; track point.weekStart; let i = $index) {
-                <tr>
-                  <th scope="row">{{ weekLabels()[i] }}</th>
-                  <td class="end num">{{ point.created }}</td>
-                  <td class="end num">{{ point.decided }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </app-chart-frame>
-
-        <app-chart-frame [heading]="'analytics.sla' | t" [caption]="'analytics.sla.hint' | t">
-          <app-donut-chart chart [segments]="slaSegments()" [centerValue]="compliance() === null ? '—' : compliance() + '%'" [centerLabel]="'analytics.kpi.compliance' | t" [description]="'analytics.sla.desc' | t" />
-          <table table>
-            <caption class="visually-hidden">{{ 'analytics.sla' | t }}</caption>
-            <thead>
-              <tr><th scope="col">{{ 'analytics.situation' | t }}</th><th scope="col" class="end">{{ 'analytics.qty' | t }}</th></tr>
-            </thead>
-            <tbody>
-              @for (segment of slaSegments(); track segment.label) {
-                <tr><th scope="row">{{ segment.label }}</th><td class="end num">{{ segment.value }}</td></tr>
-              }
-            </tbody>
-          </table>
-        </app-chart-frame>
-
-        <app-chart-frame [heading]="'analytics.bottleneck' | t" [caption]="'analytics.bottleneck.hint' | t">
-          <app-hbar-chart chart [items]="stages()" [description]="'analytics.bottleneck.desc' | t" />
-          <table table>
-            <caption class="visually-hidden">{{ 'analytics.bottleneck' | t }}</caption>
-            <thead>
-              <tr><th scope="col">{{ 'analytics.stage' | t }}</th><th scope="col" class="end">{{ 'analytics.avgTime' | t }}</th></tr>
-            </thead>
-            <tbody>
-              @for (item of stages(); track item.label) {
-                <tr><th scope="row">{{ item.label }}</th><td class="end num">{{ item.display }}</td></tr>
-              }
-            </tbody>
-          </table>
-        </app-chart-frame>
-
-        <app-chart-frame [heading]="'analytics.byRole' | t" [caption]="'analytics.byRole.hint' | t">
-          <app-hbar-chart chart [items]="roles()" [description]="'analytics.byRole.desc' | t" />
-          <table table>
-            <caption class="visually-hidden">{{ 'analytics.byRole' | t }}</caption>
-            <thead>
-              <tr><th scope="col">{{ 'admin.role' | t }}</th><th scope="col" class="end">{{ 'analytics.actions' | t }}</th></tr>
-            </thead>
-            <tbody>
-              @for (item of roles(); track item.label) {
-                <tr><th scope="row">{{ item.label }}</th><td class="end num">{{ item.display }}</td></tr>
-              }
-            </tbody>
-          </table>
-        </app-chart-frame>
-      </div>
-    }
-    @default {
-      <div role="status" class="skeleton-grid">
-        <span class="visually-hidden">{{ 'list.loading' | t }}</span>
-        @for (item of skeletons; track item) {
-          <span class="skeleton sk" aria-hidden="true"></span>
+        @if (slowestStage(); as slowest) {
+          <app-alert
+            type="info"
+            [message]="'analytics.insight' | t: { stage: slowest.label, time: slowest.display }"
+          />
         }
-      </div>
+
+        <div class="grid">
+          <app-chart-card class="wide" [heading]="'analytics.throughput' | t" [caption]="'analytics.throughput.hint' | t">
+            <app-chart chart [option]="throughputOption()" [height]="280" [ariaLabel]="'analytics.throughput.desc' | t" />
+            <table table class="data-table">
+              <caption class="visually-hidden">{{ 'analytics.throughput' | t }}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">{{ 'analytics.week' | t }}</th>
+                  <th scope="col" class="end">{{ 'analytics.created' | t }}</th>
+                  <th scope="col" class="end">{{ 'analytics.decided' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (point of data().throughput; track point.weekStart; let i = $index) {
+                  <tr>
+                    <th scope="row">{{ weekLabels()[i] }}</th>
+                    <td class="end num">{{ point.created }}</td>
+                    <td class="end num">{{ point.decided }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </app-chart-card>
+
+          <app-chart-card [heading]="'analytics.sla' | t" [caption]="'analytics.sla.hint' | t">
+            <app-chart chart [option]="slaOption()" [height]="280" [ariaLabel]="'analytics.sla.desc' | t" />
+            <table table class="data-table">
+              <caption class="visually-hidden">{{ 'analytics.sla' | t }}</caption>
+              <thead>
+                <tr><th scope="col">{{ 'analytics.situation' | t }}</th><th scope="col" class="end">{{ 'analytics.qty' | t }}</th></tr>
+              </thead>
+              <tbody>
+                @for (row of slaRows(); track row.label) {
+                  <tr><th scope="row">{{ row.label }}</th><td class="end num">{{ row.value }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </app-chart-card>
+
+          <app-chart-card [heading]="'analytics.bottleneck' | t" [caption]="'analytics.bottleneck.hint' | t">
+            <app-chart chart [option]="stagesOption()" [height]="240" [ariaLabel]="'analytics.bottleneck.desc' | t" />
+            <table table class="data-table">
+              <caption class="visually-hidden">{{ 'analytics.bottleneck' | t }}</caption>
+              <thead>
+                <tr><th scope="col">{{ 'analytics.stage' | t }}</th><th scope="col" class="end">{{ 'analytics.avgTime' | t }}</th></tr>
+              </thead>
+              <tbody>
+                @for (item of stages(); track item.label) {
+                  <tr><th scope="row">{{ item.label }}</th><td class="end num">{{ item.display }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </app-chart-card>
+
+          <app-chart-card [heading]="'analytics.byRole' | t" [caption]="'analytics.byRole.hint' | t">
+            <app-chart chart [option]="rolesOption()" [height]="240" [ariaLabel]="'analytics.byRole.desc' | t" />
+            <table table class="data-table">
+              <caption class="visually-hidden">{{ 'analytics.byRole' | t }}</caption>
+              <thead>
+                <tr><th scope="col">{{ 'admin.role' | t }}</th><th scope="col" class="end">{{ 'analytics.actions' | t }}</th></tr>
+              </thead>
+              <tbody>
+                @for (item of roles(); track item.label) {
+                  <tr><th scope="row">{{ item.label }}</th><td class="end num">{{ item.value }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </app-chart-card>
+        </div>
+      }
+      @default {
+        <app-skeleton [label]="'list.loading' | t" [count]="3" [rows]="4" />
+      }
     }
-  }
   }
 </section>

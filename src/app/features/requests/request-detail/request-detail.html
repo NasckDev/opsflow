@@ -1,228 +1,209 @@
 <section class="page">
   @let current = state();
-  <nav class="crumbs" [attr.aria-label]="'detail.back' | t">
-    <a routerLink="/requests"><app-icon name="arrowLeft" [size]="1" />{{ 'detail.crumb' | t }}</a>
-    @if (current.kind === 'loaded') {
-      <app-icon name="chevronRight" [size]="0.875" />
-      <span class="mono">{{ current.request.code }}</span>
-    }
-  </nav>
 
   @switch (current.kind) {
     @case ('loading') {
-      <div role="status" class="loading">
-        <span class="visually-hidden">{{ 'list.loading' | t }}</span>
-        <div class="card skeleton-head" aria-hidden="true">
-          <span class="skeleton" style="width: 6rem"></span>
-          <span class="skeleton" style="width: 55%; height: 1.5rem"></span>
-          <span class="skeleton" style="width: 35%"></span>
-        </div>
-        <div class="card skeleton-body" aria-hidden="true"></div>
-      </div>
+      <app-skeleton [label]="'list.loading' | t" [count]="2" [rows]="3" />
     }
     @case ('forbidden') {
-      <div class="state" role="alert">
-        <app-icon name="lock" [size]="2" />
-        <h2>{{ 'detail.forbidden' | t }}</h2>
-        <p>{{ 'detail.forbiddenHint' | t }}</p>
-        <a class="btn" routerLink="/requests"><app-icon name="arrowLeft" />{{ 'detail.back' | t }}</a>
-      </div>
+      <app-result status="403" [title]="'detail.forbidden' | t" [description]="'detail.forbiddenHint' | t">
+        <app-button icon="arrow-left" (click)="goList()">{{ 'detail.back' | t }}</app-button>
+      </app-result>
     }
     @case ('not_found') {
-      <div class="state" role="alert">
-        <app-icon name="search" [size]="2" />
-        <h2>{{ 'detail.notFound' | t }}</h2>
-        <a class="btn" routerLink="/requests"><app-icon name="arrowLeft" />{{ 'detail.back' | t }}</a>
-      </div>
+      <app-result status="404" [title]="'detail.notFound' | t">
+        <app-button icon="arrow-left" (click)="goList()">{{ 'detail.back' | t }}</app-button>
+      </app-result>
     }
     @case ('error') {
-      <div class="state state-error" role="alert">
-        <app-icon name="wifiOff" [size]="2" />
-        <h2>{{ 'list.error.title' | t }}</h2>
-        <p>{{ 'list.error.hint' | t }}</p>
-        <button type="button" class="btn btn-primary" (click)="retry()"><app-icon name="refresh" />{{ 'list.retry' | t }}</button>
-      </div>
+      <app-result status="error" [title]="'list.error.title' | t" [description]="'list.error.hint' | t">
+        <app-button variant="primary" icon="reload" (click)="retry()">{{ 'list.retry' | t }}</app-button>
+      </app-result>
     }
-  }
-
-  @if (current.kind === 'loaded') {
-    @let request = current.request;
-    <header class="head card page-enter">
-      <div class="head-main">
-        <p class="eyebrow">
-          <span class="mono">{{ request.code }}</span>
-          <span class="chip chip-plain">{{ 'category.' + request.category | t }}</span>
-        </p>
-        <h1>{{ request.title }}</h1>
+    @case ('loaded') {
+      @let request = current.request;
+      <app-page-header
+        titleId="detail-title"
+        [title]="request.title"
+        [breadcrumb]="[
+          { label: 'OpsFlow', href: '#/inbox' },
+          { label: 'app.nav.requests' | t, href: '#/requests' },
+          { label: request.code }
+        ]"
+      >
+        <div appPageActions>
+          <app-status-badge [status]="request.status" />
+        </div>
         <p class="byline muted">
-          <app-avatar [name]="request.requester" size="sm" />
-          <span>{{ request.requester }}</span>
-          <span>{{ 'detail.createdAt' | t }} <time [attr.datetime]="request.createdAt">{{ request.createdAt | localDate }}</time></span>
+          <span class="mono">{{ request.code }}</span>
+          <span class="person"><app-avatar [name]="request.requester" size="small" />{{ request.requester }}</span>
+          <span>
+            {{ 'detail.createdAt' | t }}
+            <time [attr.datetime]="request.createdAt">{{ request.createdAt | localDate }}</time>
+          </span>
         </p>
-      </div>
-      <dl class="head-side">
-        <div>
-          <dt>{{ 'list.col.status' | t }}</dt>
-          <dd><app-status-badge [status]="request.status" [large]="true" /></dd>
-        </div>
-        <div>
-          <dt>{{ 'detail.sla' | t }}</dt>
-          <dd><app-sla-meter [request]="request" [large]="true" /></dd>
-        </div>
-      </dl>
-    </header>
+      </app-page-header>
 
-    <section class="panel chain" aria-labelledby="chain-title">
-      <h2 id="chain-title" class="panel-title">{{ 'chain.title' | t }}</h2>
-      <app-approval-chain [steps]="chain()" />
-    </section>
+      <app-card [title]="'chain.title' | t" headingId="chain-title">
+        <app-approval-chain [steps]="chain()" />
+      </app-card>
 
-    @if (actions().length > 0) {
-      <section class="decision card" aria-labelledby="actions-title">
-        <div class="decision-text">
-          <h2 id="actions-title">{{ 'detail.decision' | t }}</h2>
-          <p class="hint">{{ 'detail.decisionHint' | t }}</p>
-        </div>
-        <div class="actions">
-          @for (action of actions(); track action) {
-            <button type="button" class="btn {{ buttonClass[action] }}" [disabled]="busy()" (click)="run(request, action)">
-              <app-icon [name]="actionIcons[action]" />{{ 'action.' + action | t }}
-            </button>
-          }
-        </div>
-      </section>
-    } @else {
-      <p class="no-actions muted">{{ 'detail.noActions' | t }}</p>
-    }
-
-    <div class="layout">
-      <div class="column">
-        <section class="panel" aria-labelledby="info-title">
-          <h2 id="info-title" class="panel-title">{{ 'detail.info' | t }}</h2>
-          <p class="description">{{ request.description || ('detail.noDescription' | t) }}</p>
-          <dl class="fields">
-            <div>
-              <dt>{{ 'list.amount' | t }}</dt>
-              <dd class="amount num">{{ request.amount | money }}</dd>
+      @if (actions().length > 0) {
+        <app-card class="decision">
+          <div class="decision-row">
+            <div class="decision-text">
+              <h2 id="actions-title">{{ 'detail.decision' | t }}</h2>
+              <p class="muted">{{ 'detail.decisionHint' | t }}</p>
             </div>
-            <div>
-              <dt>{{ 'wizard.field.priority' | t }}</dt>
-              <dd><app-priority [priority]="request.priority" /></dd>
+            <div class="actions">
+              @for (action of actions(); track action) {
+                <app-button
+                  [variant]="actionButton[action].variant"
+                  [tone]="actionButton[action].tone"
+                  [danger]="actionButton[action].danger"
+                  [icon]="actionIcons[action]"
+                  [loading]="busy()"
+                  (click)="run(request, action)"
+                >
+                  {{ 'action.' + action | t }}
+                </app-button>
+              }
             </div>
-            <div>
-              <dt>{{ 'list.due' | t }}</dt>
-              <dd>{{ request.dueAt | localDate }}</dd>
-            </div>
-            <div>
-              <dt>{{ 'list.requester' | t }}</dt>
-              <dd class="person"><app-avatar [name]="request.requester" size="sm" />{{ request.requester }}</dd>
-            </div>
-            <div>
-              <dt>{{ 'wizard.field.category' | t }}</dt>
-              <dd>{{ 'category.' + request.category | t }}</dd>
-            </div>
-            <div>
-              <dt>{{ 'detail.updatedAt' | t }}</dt>
-              <dd>{{ request.updatedAt | localDate }}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section class="panel" aria-labelledby="docs-title">
-          <div class="panel-head">
-            <h2 id="docs-title">{{ 'detail.documents' | t }}</h2>
-            @if (canAttach(request)) {
-              <label class="btn attach">
-                <app-icon name="upload" />{{ 'detail.attach' | t }}
-                <input type="file" multiple class="visually-hidden" (change)="onFiles(request, $event)" />
-              </label>
-            }
           </div>
-          @if (request.documents.length) {
-            <ul class="docs">
-              @for (doc of request.documents; track doc) {
-                <li><app-icon name="paperclip" />{{ doc }}</li>
+        </app-card>
+      } @else {
+        <p class="no-actions muted">{{ 'detail.noActions' | t }}</p>
+      }
+
+      <div class="page-grid-2">
+        <div class="column">
+          <app-card [title]="'detail.info' | t" headingId="info-title">
+            <p class="description">{{ request.description || ('detail.noDescription' | t) }}</p>
+            <app-descriptions>
+              <app-descriptions-item [label]="'list.amount' | t">
+                <span class="amount num">{{ request.amount | money }}</span>
+              </app-descriptions-item>
+              <app-descriptions-item [label]="'wizard.field.priority' | t">
+                <app-priority [priority]="request.priority" />
+              </app-descriptions-item>
+              <app-descriptions-item [label]="'detail.slaStatus' | t">
+                <app-sla-meter [request]="request" />
+              </app-descriptions-item>
+              <app-descriptions-item [label]="'list.due' | t">{{ request.dueAt | localDate }}</app-descriptions-item>
+              <app-descriptions-item [label]="'wizard.field.category' | t">
+                {{ 'category.' + request.category | t }}
+              </app-descriptions-item>
+              <app-descriptions-item [label]="'detail.updatedAt' | t">
+                {{ request.updatedAt | localDate }}
+              </app-descriptions-item>
+            </app-descriptions>
+          </app-card>
+
+          <app-card [title]="'detail.documents' | t" headingId="docs-title">
+            @if (canAttach(request)) {
+              <div appCardExtra>
+                <app-button icon="upload" size="small" (click)="files.click()">{{ 'detail.attach' | t }}</app-button>
+                <input
+                  #files
+                  type="file"
+                  multiple
+                  class="visually-hidden"
+                  tabindex="-1"
+                  [attr.aria-label]="'detail.attach' | t"
+                  (change)="onFiles(request, $event)"
+                />
+              </div>
+            }
+            @if (request.documents.length) {
+              <app-list [data]="request.documents" [trackBy]="docKey" [ariaLabel]="'detail.documents' | t">
+                <ng-template let-doc>
+                  <span class="doc">{{ doc }}</span>
+                </ng-template>
+              </app-list>
+              <p class="hint muted">{{ 'detail.attachHint' | t }}</p>
+            } @else {
+              <p class="muted">{{ 'detail.noDocuments' | t }}</p>
+            }
+          </app-card>
+
+          <app-card headingId="comments-title" [title]="('detail.comments' | t) + ' (' + thread().length + ')'">
+            <ul class="thread" data-testid="comment-thread">
+              @for (comment of thread(); track comment.id) {
+                <li>
+                  <app-avatar [name]="comment.author" />
+                  <div class="bubble">
+                    <p class="who">
+                      <strong>{{ comment.author }}</strong>
+                      <span class="muted">
+                        {{ 'role.' + comment.role | t }} ·
+                        <time [attr.datetime]="comment.at">{{ comment.at | localDate }}</time>
+                      </span>
+                    </p>
+                    <p class="body">{{ comment.body }}</p>
+                  </div>
+                </li>
+              } @empty {
+                <li class="muted none">{{ 'detail.noComments' | t }}</li>
               }
             </ul>
-            <p class="hint">{{ 'detail.attachHint' | t }}</p>
-          } @else {
-            <p class="muted">{{ 'detail.noDocuments' | t }}</p>
-          }
-        </section>
-
-        <section class="panel" aria-labelledby="comments-title">
-          <h2 id="comments-title" class="panel-title">
-            {{ 'detail.comments' | t }}<span class="count">{{ thread().length }}</span>
-          </h2>
-          <ul class="thread" data-testid="comment-thread">
-            @for (comment of thread(); track comment.id) {
-              <li>
-                <app-avatar [name]="comment.author" />
-                <div class="bubble">
-                  <p class="who">
-                    <strong>{{ comment.author }}</strong>
-                    <span class="muted">{{ 'role.' + comment.role | t }} · <time [attr.datetime]="comment.at">{{ comment.at | localDate }}</time></span>
-                  </p>
-                  <p class="body">{{ comment.body }}</p>
-                </div>
-              </li>
-            } @empty {
-              <li class="muted none">{{ 'detail.noComments' | t }}</li>
+            @if (session.currentRole() !== 'auditor') {
+              <form class="composer" (submit)="$event.preventDefault(); postComment(request)">
+                <app-form-item
+                  forId="new-comment"
+                  [label]="'detail.addComment' | t"
+                  [error]="commentError() ? ('error.' + commentError() | t) : null"
+                >
+                  <app-input
+                    type="textarea"
+                    inputId="new-comment"
+                    [rows]="2"
+                    [invalid]="!!commentError()"
+                    [describedBy]="commentError() ? 'new-comment-error' : ''"
+                    [ngModel]="draftComment()"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="onDraft($event)"
+                  />
+                </app-form-item>
+                <app-button variant="primary" htmlType="submit" icon="send" [loading]="posting()">
+                  {{ 'detail.send' | t }}
+                </app-button>
+              </form>
             }
-          </ul>
-          @if (session.currentRole() !== 'auditor') {
-          <form class="composer" (submit)="$event.preventDefault(); postComment(request)">
-            <div class="field">
-              <label for="new-comment">{{ 'detail.addComment' | t }}</label>
-              <textarea id="new-comment" rows="2" [value]="draftComment()" (input)="onDraft($event)"
-                [attr.aria-invalid]="commentError() ? 'true' : null" aria-describedby="comment-error"></textarea>
-              <p id="comment-error" class="field-error" role="alert">
-                @if (commentError(); as code) {
-                  {{ 'error.' + code | t }}
-                }
-              </p>
-            </div>
-            <button type="submit" class="btn btn-primary" [disabled]="posting()">
-              <app-icon name="comment" />{{ 'detail.send' | t }}
-            </button>
-          </form>
-          }
-        </section>
-      </div>
+          </app-card>
+        </div>
 
-      <section class="panel timeline-panel" aria-labelledby="timeline-title">
-        <h2 id="timeline-title" class="panel-title">{{ 'detail.timeline' | t }}</h2>
-        @if (session.can('audit.view')) {
-          <ol class="timeline" data-testid="audit-timeline">
-            @for (entry of request.audit; track entry.id) {
-              <li [attr.data-action]="entry.action">
-                <span class="node"><app-icon [name]="actionIcons[entry.action]" [size]="1" /></span>
-                <div class="entry">
-                  <p class="entry-title">
-                    <strong>{{ 'action.' + entry.action | t }}</strong>
-                    <time class="muted" [attr.datetime]="entry.at">{{ entry.at | localDate }}</time>
-                  </p>
-                  <p class="actor muted">
-                    <app-avatar [name]="entry.actor" size="sm" />{{ entry.actor }} · {{ 'role.' + entry.role | t }}
-                  </p>
-                  <p class="transition">
-                    @if (entry.from) {
-                      <app-status-badge [status]="entry.from" />
-                      <app-icon name="arrowRight" [size]="0.875" />
+        <app-card [title]="'detail.timeline' | t" headingId="timeline-title">
+          @if (session.can('audit.view')) {
+            <div data-testid="audit-timeline">
+              <app-timeline [marks]="marks(request)" [data]="request.audit">
+                <ng-template let-entry>
+                  <div class="entry" [attr.data-action]="entry.action">
+                    <p class="entry-title">
+                      <strong>{{ 'action.' + entry.action | t }}</strong>
+                      <time class="muted" [attr.datetime]="entry.at">{{ entry.at | localDate }}</time>
+                    </p>
+                    <p class="actor muted">
+                      <app-avatar [name]="entry.actor" size="small" />{{ entry.actor }} · {{ 'role.' + entry.role | t }}
+                    </p>
+                    <p class="transition">
+                      @if (entry.from) {
+                        <app-status-badge [status]="entry.from" />
+                        <span aria-hidden="true">→</span>
+                      }
+                      <app-status-badge [status]="entry.to" />
+                    </p>
+                    @if (entry.comment) {
+                      <blockquote>{{ entry.comment }}</blockquote>
                     }
-                    <app-status-badge [status]="entry.to" />
-                  </p>
-                  @if (entry.comment) {
-                    <blockquote>{{ entry.comment }}</blockquote>
-                  }
-                </div>
-              </li>
-            }
-          </ol>
-        } @else {
-          <p class="muted">{{ 'detail.timelineHidden' | t }}</p>
-        }
-      </section>
-    </div>
+                  </div>
+                </ng-template>
+              </app-timeline>
+            </div>
+          } @else {
+            <p class="muted">{{ 'detail.timelineHidden' | t }}</p>
+          }
+        </app-card>
+      </div>
+    }
   }
 </section>

@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { createAuditEntry } from '../domain/audit';
 import { Actor } from '../domain/request.model';
 import { buildRequest } from '../domain/testing/request-fixture';
+import { provideUi } from '../ui';
 import { Countdown } from './countdown';
 
 const CARLA: Actor = { name: 'Carla Mendes', role: 'approver' };
@@ -9,6 +10,7 @@ const HOUR = 3_600_000;
 
 function render(input: Parameters<typeof buildRequest>[0]) {
   localStorage.clear();
+  TestBed.configureTestingModule({ providers: [provideUi()] });
   const fixture = TestBed.createComponent(Countdown);
   fixture.componentRef.setInput('request', buildRequest(input));
   fixture.detectChanges();

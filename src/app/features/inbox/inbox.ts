@@ -1,26 +1,42 @@
 import { LiveAnnouncer } from '@angular/cdk/a11y';
-import { Dialog } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { LocalDatePipe, MoneyPipe } from '../../core/i18n/format.pipes';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { TranslationService } from '../../core/i18n/translation.service';
 import { RequestsStore } from '../../core/requests/requests.store';
 import { TransitionService } from '../../core/requests/transition.service';
 import { SessionStore } from '../../core/session/session.store';
-import { Popover } from '../../core/shell/popover';
+import { ShellPanels } from '../../core/shell/panels';
 import { readStorage, writeStorage } from '../../core/storage';
 import { NowService } from '../../core/time/now.service';
 import { ToastService } from '../../core/ui/toast.service';
-import { isTypingTarget } from '../../core/ui/shortcuts.service';
+import { Shortcuts, isTypingTarget } from '../../core/ui/shortcuts.service';
 import { InboxTask, canBatchApprove, inboxTasks } from '../../domain/inbox';
 import { evaluateSla } from '../../domain/sla';
 import { CATEGORIES, PRIORITIES, WorkflowAction } from '../../domain/request.model';
-import { ACTION_BUTTON_CLASS, ACTION_ICONS } from '../../shared/action-meta';
-import { Avatar } from '../../shared/avatar';
+import { ACTION_BUTTON, ACTION_ICONS } from '../../shared/action-meta';
 import { PriorityBadge, StatusBadge } from '../../shared/badges';
 import { Countdown } from '../../shared/countdown';
-import { Icon } from '../../shared/icon';
+import {
+  AppAlert,
+  AppAvatar,
+  AppButton,
+  AppCard,
+  AppCheckbox,
+  AppEmpty,
+  AppIcon,
+  AppIconButton,
+  AppInput,
+  AppPageHeader,
+  AppProgress,
+  AppResult,
+  AppSelect,
+  AppSelectOption,
+  AppSkeleton,
+  AppTag,
+} from '../../ui';
 import {
   InboxFilter,
   NO_FILTER,
@@ -54,15 +70,28 @@ interface BatchResult {
 @Component({
   selector: 'app-inbox',
   imports: [
-    RouterLink,
+    FormsModule,
     TranslatePipe,
     LocalDatePipe,
     MoneyPipe,
-    Avatar,
+    AppAlert,
+    AppAvatar,
+    AppButton,
+    AppCard,
+    AppCheckbox,
+    AppEmpty,
+    AppIcon,
+    AppIconButton,
+    AppInput,
+    AppPageHeader,
+    AppProgress,
+    AppResult,
+    AppSelect,
+    AppSkeleton,
+    AppTag,
     Countdown,
     PriorityBadge,
     StatusBadge,
-    Icon,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -77,8 +106,8 @@ export class Inbox {
   private readonly session = inject(SessionStore);
   private readonly transitions = inject(TransitionService);
   private readonly router = inject(Router);
-  private readonly dialog = inject(Dialog);
-  private readonly popover = inject(Popover);
+  private readonly shortcuts = inject(Shortcuts);
+  private readonly panels = inject(ShellPanels);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(TranslationService);
   private readonly clock = inject(NowService);
@@ -91,13 +120,14 @@ export class Inbox {
   protected readonly status = this.store.status;
   protected readonly role = this.session.currentRole;
   protected readonly actionIcons = ACTION_ICONS;
-  protected readonly buttonClass = ACTION_BUTTON_CLASS;
+  protected readonly actionButton = ACTION_BUTTON;
 
   protected readonly filter = signal<InboxFilter>(NO_FILTER);
   protected readonly saved = signal<readonly SavedFilter[]>(
     parseSavedFilters(readStorage(SAVED_FILTERS_KEY)),
   );
   protected readonly naming = signal(false);
+  protected readonly filterName = signal('');
   protected readonly selected = signal<ReadonlySet<string>>(new Set());
   protected readonly busy = signal(false);
   protected readonly hintVisible = signal(readStorage(HINT_KEY) !== '1');
@@ -183,20 +213,36 @@ export class Inbox {
     this.applyFilter({ ...this.filter(), ...patch });
   }
 
-  protected onPriority(event: Event): void {
-    this.patchFilter({
-      priority: (event.target as HTMLSelectElement).value as InboxFilter['priority'],
-    });
+  protected onPriority(value: string | number | null): void {
+    this.patchFilter({ priority: (value ?? 'any') as InboxFilter['priority'] });
   }
 
-  protected onCategory(event: Event): void {
-    this.patchFilter({
-      category: (event.target as HTMLSelectElement).value as InboxFilter['category'],
-    });
+  protected onCategory(value: string | number | null): void {
+    this.patchFilter({ category: (value ?? 'any') as InboxFilter['category'] });
   }
 
-  protected saveFilter(name: string): void {
-    this.saved.update((current) => addSavedFilter(current, name, this.filter()));
+  protected readonly priorityOptions = computed<AppSelectOption[]>(() => {
+    this.i18n.locale();
+    const t = (key: string) => this.i18n.translateDynamic(key);
+    return [
+      { value: 'any', label: t('inbox.anyPriority') },
+      ...PRIORITIES.map((item) => ({ value: item, label: t(`priority.${item}`) })),
+    ];
+  });
+
+  protected readonly categoryOptions = computed<AppSelectOption[]>(() => {
+    this.i18n.locale();
+    const t = (key: string) => this.i18n.translateDynamic(key);
+    return [
+      { value: 'any', label: t('inbox.anyCategory') },
+      ...CATEGORIES.map((item) => ({ value: item, label: t(`category.${item}`) })),
+    ];
+  });
+
+  protected saveFilter(name: string | number | null): void {
+    const label = String(name ?? '').trim();
+    if (!label) return;
+    this.saved.update((current) => addSavedFilter(current, label, this.filter()));
     writeStorage(SAVED_FILTERS_KEY, JSON.stringify(this.saved()));
     this.naming.set(false);
   }
@@ -288,8 +334,8 @@ export class Inbox {
   /** Atalhos da caixa de entrada: j/k, Enter, x, a, r (ancorados no id da tarefa em foco). */
   protected onKeydown(event: KeyboardEvent): void {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (isTypingTarget(event.target) || this.dialog.openDialogs.length > 0) return;
-    if (this.popover.openKey() !== null || this.batch() !== null) return;
+    if (isTypingTarget(event.target) || this.shortcuts.dialogOpen()) return;
+    if (this.panels.openKey() !== null || this.batch() !== null) return;
     const list = this.tasks();
     if (list.length === 0) return;
     const id = this.activeId();

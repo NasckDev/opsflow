@@ -1,50 +1,44 @@
-<div
-  class="palette dialog-card"
-  cdkTrapFocus
-  [cdkTrapFocusAutoCapture]="true"
-  (animationend)="focusInput()"
+<app-modal
+  [open]="shortcuts.paletteOpen()"
+  [title]="'palette.title' | t"
+  [width]="560"
+  [centered]="false"
+  className="app-palette"
+  [autofocus]="null"
+  (closed)="close()"
 >
-  <div class="search">
-    <app-icon name="search" />
-    <input
-      #field
-      type="text"
-      role="combobox"
-      aria-controls="palette-list"
-      aria-autocomplete="list"
-      [attr.aria-expanded]="results().length > 0"
-      [attr.aria-activedescendant]="results().length ? 'palette-opt-' + active() : null"
-      [attr.aria-label]="'palette.placeholder' | t"
+  <div role="presentation" (keydown)="onKeydown($event)">
+    <app-input
+      type="search"
+      prefixIcon="search"
+      inputId="palette-field"
+      [ariaLabel]="'palette.placeholder' | t"
       [placeholder]="'palette.placeholder' | t"
-      autocomplete="off"
-      [value]="query()"
-      (input)="onInput($event)"
-      (keydown)="onKeydown($event)"
+      [ngModel]="query()"
+      (ngModelChange)="onQuery($event)"
     />
-    <kbd>Esc</kbd>
+    <ul id="palette-list" class="results" role="listbox" [attr.aria-label]="'palette.title' | t">
+      @for (command of results(); track command.id; let i = $index) {
+        <li
+          role="option"
+          tabindex="-1"
+          [id]="'palette-opt-' + i"
+          [attr.aria-selected]="i === active()"
+          [class.active]="i === active()"
+          (click)="execute(command)"
+          (keydown.enter)="execute(command)"
+          (mouseenter)="active.set(i)"
+        >
+          <app-icon [name]="command.icon" />
+          <span class="label">{{ command.label }}</span>
+          @if (command.hint) {
+            <span class="mono muted">{{ command.hint }}</span>
+          }
+          <span class="group">{{ 'palette.group.' + command.group | t }}</span>
+        </li>
+      } @empty {
+        <li class="empty" role="presentation">{{ 'palette.empty' | t }}</li>
+      }
+    </ul>
   </div>
-
-  <ul id="palette-list" role="listbox" [attr.aria-label]="'palette.title' | t">
-    @for (command of results(); track command.id; let i = $index) {
-      <li
-        role="option"
-        tabindex="-1"
-        [id]="'palette-opt-' + i"
-        [attr.aria-selected]="i === active()"
-        [class.active]="i === active()"
-        (click)="execute(command)"
-        (keydown.enter)="execute(command)"
-        (mouseenter)="active.set(i)"
-      >
-        <app-icon [name]="command.icon" />
-        <span class="label">{{ command.label }}</span>
-        @if (command.hint) {
-          <span class="mono hint">{{ command.hint }}</span>
-        }
-        <span class="group">{{ 'palette.group.' + command.group | t }}</span>
-      </li>
-    } @empty {
-      <li class="empty" role="presentation">{{ 'palette.empty' | t }}</li>
-    }
-  </ul>
-</div>
+</app-modal>

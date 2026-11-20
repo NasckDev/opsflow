@@ -1,23 +1,46 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { DEMO_USERS, SessionStore } from '../../core/session/session.store';
 import { ToastService } from '../../core/ui/toast.service';
 import { TranslationService } from '../../core/i18n/translation.service';
 import { PERMISSIONS, can } from '../../domain/permissions';
 import { ROLES, Role } from '../../domain/request.model';
-import { Avatar } from '../../shared/avatar';
-import { Icon } from '../../shared/icon';
+import { ViewportService } from '../../core/ui/viewport.service';
+import {
+  AppAvatar,
+  AppButton,
+  AppCard,
+  AppIcon,
+  AppList,
+  AppPageHeader,
+  AppTable,
+  AppTableCell,
+  AppTableColumn,
+  AppTag,
+  UiIconName,
+} from '../../ui';
 
-const RULES = [
-  { icon: 'users', key: 'admin.rule.separation' },
-  { icon: 'comment', key: 'admin.rule.comment' },
-  { icon: 'clock', key: 'admin.rule.sla' },
+const RULES: readonly { readonly icon: UiIconName; readonly key: string }[] = [
+  { icon: 'team', key: 'admin.rule.separation' },
+  { icon: 'message', key: 'admin.rule.comment' },
+  { icon: 'clock-circle', key: 'admin.rule.sla' },
   { icon: 'lock', key: 'admin.rule.auditor' },
-] as const;
+];
 
 @Component({
   selector: 'app-admin',
-  imports: [TranslatePipe, Avatar, Icon],
+  imports: [
+    TranslatePipe,
+    AppAvatar,
+    AppButton,
+    AppCard,
+    AppIcon,
+    AppList,
+    AppPageHeader,
+    AppTable,
+    AppTableCell,
+    AppTag,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin.html',
   styleUrl: './admin.scss',
@@ -27,10 +50,36 @@ export class Admin {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(TranslationService);
 
+  protected readonly viewport = inject(ViewportService);
   protected readonly roles = ROLES;
+  protected readonly roleRows = ROLES.map((role) => ({ id: role, role }));
+  protected readonly permissionRows = PERMISSIONS.map((permission) => ({ id: permission, permission }));
+  protected readonly matrixColumns = computed<AppTableColumn[]>(() => {
+    this.i18n.locale();
+    return [
+      { key: 'permission', title: this.i18n.translateDynamic('admin.permission') },
+      ...ROLES.map((role) => ({
+        key: role,
+        title: this.i18n.translateDynamic(`role.${role}`),
+        align: 'center' as const,
+      })),
+    ];
+  });
   protected readonly permissions = PERMISSIONS;
-  protected readonly users = ROLES.map((role) => ({ role, name: DEMO_USERS[role] }));
+  protected readonly users = DEMO_USERS;
   protected readonly rules = RULES;
+
+  protected userName(role: Role): string {
+    return DEMO_USERS[role];
+  }
+
+  protected permissionOf(row: unknown): (typeof PERMISSIONS)[number] {
+    return (row as { permission: (typeof PERMISSIONS)[number] }).permission;
+  }
+
+  protected granted(role: Role): (typeof PERMISSIONS)[number][] {
+    return this.permissions.filter((permission) => can(role, permission));
+  }
 
   protected allowed(role: Role, permission: (typeof PERMISSIONS)[number]): boolean {
     return can(role, permission);

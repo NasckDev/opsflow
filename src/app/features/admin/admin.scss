@@ -1,0 +1,72 @@
+:host {
+  display: block;
+}
+
+.side {
+  display: grid;
+  gap: 1rem;
+}
+
+.yes {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--ox-color-success);
+  background: var(--ox-color-success-surface);
+  border-radius: 50%;
+}
+
+.no {
+  color: var(--ox-color-text-muted);
+}
+
+.hint {
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.role-card {
+  padding: 0.75rem;
+  border: 1px solid var(--ox-color-border);
+  border-radius: 8px;
+
+  &.current {
+    border-color: var(--ox-color-success);
+  }
+}
+
+.role-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.granted,
+.rules {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.who {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}

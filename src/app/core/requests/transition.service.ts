@@ -1,5 +1,4 @@
 import { LiveAnnouncer } from '@angular/cdk/a11y';
-import { Dialog } from '@angular/cdk/dialog';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Actor, WorkflowAction, WorkflowRequest } from '../../domain/request.model';
@@ -8,7 +7,7 @@ import { accessError, applyTransition, requiresComment } from '../../domain/work
 import { RequestsApi, apiErrorCode } from '../api/requests.api';
 import { TranslationService } from '../i18n/translation.service';
 import { SessionStore } from '../session/session.store';
-import type { CommentPromptData } from '../ui/comment-prompt';
+import { CommentPromptData, CommentPromptService } from '../ui/comment-prompt';
 import { ToastService } from '../ui/toast.service';
 import { RequestsStore } from './requests.store';
 
@@ -59,7 +58,7 @@ export class TransitionService {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(TranslationService);
   private readonly announcer = inject(LiveAnnouncer);
-  private readonly dialog = inject(Dialog);
+  private readonly prompt = inject(CommentPromptService);
   private readonly pending = new Map<string, Pending>();
 
   /** Impedimento de papel, estado, dono ou segregação (o comentário não conta aqui). */
@@ -187,8 +186,6 @@ export class TransitionService {
     request: WorkflowRequest,
     action: WorkflowAction,
   ): Promise<string | undefined> {
-    // O diálogo só é carregado quando precisa aparecer: fora do bundle inicial.
-    const { CommentPrompt } = await import('../ui/comment-prompt');
     const sla = evaluateSla(request, new Date());
     const data: CommentPromptData = {
       action,
@@ -196,15 +193,7 @@ export class TransitionService {
       justification: action === 'approve',
       overdue: sla.state === 'breached' ? formatHours(Math.abs(sla.hoursRemaining)) : null,
     };
-    const ref = this.dialog.open<string, CommentPromptData>(CommentPrompt, {
-      data,
-      ariaModal: true,
-      ariaLabelledBy: 'prompt-title',
-      panelClass: 'ox-dialog-panel',
-      backdropClass: 'ox-dialog-backdrop',
-      autoFocus: false,
-    });
-    return firstValueFrom(ref.closed);
+    return this.prompt.ask(data);
   }
 
   /** Mostra o erro; se a tela estava velha, recarrega o cache e explica o que aconteceu. */

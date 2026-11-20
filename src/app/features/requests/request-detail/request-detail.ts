@@ -8,7 +8,8 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Observable, catchError, combineLatest, map, of, startWith, switchMap, tap } from 'rxjs';
 import { RequestsApi, apiErrorCode } from '../../../core/api/requests.api';
 import { LocalDatePipe, MoneyPipe } from '../../../core/i18n/format.pipes';
@@ -20,13 +21,28 @@ import { SessionStore } from '../../../core/session/session.store';
 import { ToastService } from '../../../core/ui/toast.service';
 import { buildApprovalChain } from '../../../domain/approval-chain';
 import { RequestComment, validateCommentBody } from '../../../domain/comments';
-import { WorkflowAction, WorkflowRequest } from '../../../domain/request.model';
+import { AuditAction, WorkflowAction, WorkflowRequest } from '../../../domain/request.model';
 import { availableActions } from '../../../domain/workflow-machine';
-import { ACTION_BUTTON_CLASS, ACTION_ICONS } from '../../../shared/action-meta';
+import { ACTION_BUTTON, ACTION_ICONS } from '../../../shared/action-meta';
 import { ApprovalChain } from '../../../shared/approval-chain';
-import { Avatar } from '../../../shared/avatar';
 import { PriorityBadge, SlaMeter, StatusBadge } from '../../../shared/badges';
-import { Icon } from '../../../shared/icon';
+import {
+  AppAvatar,
+  AppButton,
+  AppCard,
+  AppCardExtra,
+  AppDescriptions,
+  AppDescriptionsItem,
+  AppFormItem,
+  AppInput,
+  AppList,
+  AppPageHeader,
+  AppResult,
+  AppSkeleton,
+  AppTimeline,
+  AppTimelineItem,
+  AppTone,
+  } from '../../../ui';
 
 type DetailState =
   | { readonly kind: 'loading' }
@@ -37,22 +53,44 @@ type DetailState =
 
 const LOADING: DetailState = { kind: 'loading' };
 
+const AUDIT_TONES: Readonly<Record<AuditAction, AppTone>> = {
+  create: 'neutral',
+  migrate: 'neutral',
+  submit: 'info',
+  resubmit: 'info',
+  return: 'violet',
+  approve: 'success',
+  reject: 'danger',
+  complete: 'success',
+};
+
 /** Estados em que ainda dá para anexar arquivos (regra do servidor). */
 const ATTACHABLE_STATUSES: readonly WorkflowRequest['status'][] = ['draft', 'returned'];
 
 @Component({
   selector: 'app-request-detail',
   imports: [
-    RouterLink,
+    FormsModule,
     TranslatePipe,
     LocalDatePipe,
     MoneyPipe,
     StatusBadge,
     PriorityBadge,
     SlaMeter,
-    Avatar,
     ApprovalChain,
-    Icon,
+    AppAvatar,
+    AppButton,
+    AppCard,
+    AppCardExtra,
+    AppDescriptions,
+    AppDescriptionsItem,
+    AppFormItem,
+    AppInput,
+    AppList,
+    AppPageHeader,
+    AppResult,
+    AppSkeleton,
+    AppTimeline,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './request-detail.html',
@@ -65,7 +103,9 @@ export class RequestDetail {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(TranslationService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
   protected readonly session = inject(SessionStore);
+  protected readonly docKey = (doc: string): string => doc;
 
   /** Vem do parâmetro de rota `:id` (withComponentInputBinding). */
   readonly id = input.required<string>();
@@ -78,7 +118,7 @@ export class RequestDetail {
   private readonly posted = signal<readonly RequestComment[]>([]);
 
   protected readonly actionIcons = ACTION_ICONS;
-  protected readonly buttonClass = ACTION_BUTTON_CLASS;
+  protected readonly actionButton = ACTION_BUTTON;
   protected readonly busy = signal(false);
   protected readonly draftComment = signal('');
   protected readonly commentError = signal<string | null>(null);
@@ -118,6 +158,10 @@ export class RequestDetail {
     );
   }
 
+  protected goList(): void {
+    void this.router.navigateByUrl('/requests');
+  }
+
   protected retry(): void {
     this.reloads.update((count) => count + 1);
   }
@@ -133,9 +177,18 @@ export class RequestDetail {
     }
   }
 
-  protected onDraft(event: Event): void {
-    this.draftComment.set((event.target as HTMLTextAreaElement).value);
+  protected onDraft(value: string | number | null): void {
+    this.draftComment.set(String(value ?? ''));
     this.commentError.set(null);
+  }
+
+  /** Marcas da linha do tempo de auditoria (ícone e tom por ação). */
+  protected marks(request: WorkflowRequest): AppTimelineItem[] {
+    return request.audit.map((entry) => ({
+      key: entry.id,
+      tone: AUDIT_TONES[entry.action],
+      icon: ACTION_ICONS[entry.action],
+    }));
   }
 
   protected postComment(request: WorkflowRequest): void {

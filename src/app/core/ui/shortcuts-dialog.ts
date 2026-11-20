@@ -1,8 +1,7 @@
-import { CdkTrapFocus } from '@angular/cdk/a11y';
-import { DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { Icon } from '../../shared/icon';
+import { AppModal } from '../../ui';
 import { TranslatePipe } from '../i18n/translate.pipe';
+import { Shortcuts } from './shortcuts.service';
 
 interface ShortcutGroup {
   readonly title: string;
@@ -37,76 +36,43 @@ const GROUPS: readonly ShortcutGroup[] = [
 
 @Component({
   selector: 'app-shortcuts-dialog',
-  imports: [CdkTrapFocus, TranslatePipe, Icon],
+  imports: [TranslatePipe, AppModal],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
-    .dialog-card {
-      width: min(34rem, calc(100vw - 1.5rem));
-      max-height: 85vh;
-      overflow-y: auto;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
     h3 {
-      margin: var(--ox-space-4) 0 var(--ox-space-2);
-      font-size: var(--ox-font-size-2xs);
+      margin: 1rem 0 0.5rem;
+      color: var(--ox-color-text-muted);
+      font-size: 0.6875rem;
       letter-spacing: 0.07em;
       text-transform: uppercase;
-      color: var(--ox-color-text-muted);
     }
     dl {
       display: grid;
+      gap: 0.25rem;
       margin: 0;
     }
     .row {
-      display: flex;
+      display: grid;
+      grid-template-columns: 8rem minmax(0, 1fr);
+      gap: 0.75rem;
       align-items: center;
-      justify-content: space-between;
-      gap: var(--ox-space-3);
-      padding: var(--ox-space-2) 0;
-      border-bottom: 1px solid var(--ox-hairline);
+      min-height: 2rem;
     }
     dt {
-      order: 2;
       display: flex;
-      gap: var(--ox-space-1);
+      gap: 0.25rem;
     }
     dd {
-      order: 1;
       margin: 0;
-    }
-    kbd {
-      min-width: 1.5rem;
-      padding: 0.125rem 0.4rem;
-      text-align: center;
-      font-family: var(--ox-font-family-mono);
-      font-size: var(--ox-font-size-xs);
-      background: var(--ox-page);
-      border: 1px solid var(--ox-color-border);
-      border-bottom-width: 2px;
-      border-radius: var(--ox-radius-sm);
     }
   `,
   template: `
-    <div
-      class="dialog-card"
-      cdkTrapFocus
-      [cdkTrapFocusAutoCapture]="true"
+    <app-modal
+      [open]="shortcuts.helpOpen()"
+      [title]="'shortcuts.title' | t"
+      [width]="540"
+      (closed)="shortcuts.helpOpen.set(false)"
     >
-      <header>
-        <h2 id="shortcuts-title">{{ 'shortcuts.title' | t }}</h2>
-        <button
-          type="button"
-          class="btn btn-ghost btn-icon"
-          [attr.aria-label]="'app.close' | t"
-          (click)="ref.close()"
-        >
-          <app-icon name="x" />
-        </button>
-      </header>
       @for (group of groups; track group.title) {
         <h3>{{ group.title | t }}</h3>
         <dl>
@@ -122,10 +88,10 @@ const GROUPS: readonly ShortcutGroup[] = [
           }
         </dl>
       }
-    </div>
+    </app-modal>
   `,
 })
 export class ShortcutsDialog {
-  protected readonly ref = inject<DialogRef<void>>(DialogRef);
+  protected readonly shortcuts = inject(Shortcuts);
   protected readonly groups = GROUPS;
 }

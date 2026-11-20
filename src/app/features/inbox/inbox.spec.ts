@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { mockApiInterceptor } from '../../core/api/mock-api.interceptor';
 import { ToastService } from '../../core/ui/toast.service';
+import { provideUi } from '../../ui';
 import { Inbox } from './inbox';
 
 const LATENCY = 600;
@@ -10,7 +11,11 @@ const LATENCY = 600;
 async function render() {
   localStorage.clear();
   TestBed.configureTestingModule({
-    providers: [provideRouter([]), provideHttpClient(withInterceptors([mockApiInterceptor]))],
+    providers: [
+      provideRouter([]),
+      provideHttpClient(withInterceptors([mockApiInterceptor])),
+      provideUi(),
+    ],
   });
   const fixture = TestBed.createComponent(Inbox);
   fixture.detectChanges();
@@ -74,7 +79,7 @@ describe('Inbox component', () => {
         item.textContent?.includes('Contrato de suporte do ERP'),
       ),
     ).toBe(false);
-    const chip = Array.from(root.querySelectorAll<HTMLButtonElement>('.filter')).find((button) =>
+    const chip = Array.from(root.querySelectorAll<HTMLButtonElement>('.filter button')).find((button) =>
       button.textContent?.includes('Para concluir'),
     );
     chip?.click();

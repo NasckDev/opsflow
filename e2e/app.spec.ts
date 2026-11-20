@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { Page, expect, test } from '@playwright/test';
+import { Locator, Page, expect, test } from '@playwright/test';
 
 type Role = 'requester' | 'reviewer' | 'approver' | 'auditor' | 'admin';
 type Theme = 'light' | 'dark';
@@ -33,12 +33,25 @@ async function expectNoHorizontalScroll(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
+/** A caixa do elemento cabe inteira na janela (diálogos e gavetas nunca vazam para fora). */
+async function expectInsideViewport(page: Page, locator: Locator) {
+  const box = await locator.boundingBox();
+  const viewport = page.viewportSize();
+  if (!box || !viewport) throw new Error('sem geometria para verificar');
+  expect(box.x).toBeGreaterThanOrEqual(-1);
+  expect(box.y).toBeGreaterThanOrEqual(-1);
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1);
+}
+
+const toast = (page: Page) => page.locator('.ant-message');
+
 const SCREENS: readonly { name: string; hash: string; ready: string; role?: Role }[] = [
   { name: 'caixa de entrada', hash: '/inbox', ready: '[data-testid="inbox-list"]' },
   { name: 'solicitações', hash: '/requests', ready: '[data-testid="request-list"], .req-card' },
   { name: 'quadro', hash: '/board', ready: '[data-testid="board"]' },
-  { name: 'análises', hash: '/analytics', ready: 'app-donut-chart' },
-  { name: 'administração', hash: '/admin', ready: '.role-cards, [data-testid="rbac-matrix"]' },
+  { name: 'análises', hash: '/analytics', ready: 'app-chart svg' },
+  { name: 'administração', hash: '/admin', ready: '.role-card, [data-testid="rbac-matrix"]' },
   { name: 'detalhe', hash: '/requests/req-1', ready: '[data-testid="audit-timeline"]' },
   { name: 'wizard', hash: '/requests/new', ready: '#title', role: 'requester' },
 ];
@@ -53,12 +66,105 @@ test.describe('acessibilidade (axe, WCAG 2.2 AA) e sem rolagem horizontal', () =
     for (const theme of ['light', 'dark'] as const) {
       for (const screen of SCREENS) {
         test(`${screen.name} · ${size.label} · tema ${theme}`, async ({ page }) => {
+          const errors: string[] = [];
+          page.on('pageerror', (error) => errors.push(String(error)));
+          page.on('console', (message) => {
+            if (message.type() === 'error') errors.push(message.text());
+          });
           await page.setViewportSize({ width: size.width, height: size.height });
           await open(page, screen.hash, screen.role ?? 'approver', theme);
           await page.waitForSelector(screen.ready, { state: 'attached' });
           await page.waitForTimeout(900);
           await expectNoAxeViolations(page);
           await expectNoHorizontalScroll(page);
+          expect(errors).toEqual([]);
+        });
+      }
+    }
+  }
+});
+
+interface Overlay {
+  readonly name: string;
+  readonly kind: 'modal' | 'drawer';
+  readonly mobileOnly?: boolean;
+  readonly open: (page: Page, mobile: boolean) => Promise<void>;
+}
+
+const OVERLAYS: readonly Overlay[] = [
+  {
+    name: 'diálogo de comentário obrigatório',
+    kind: 'modal',
+    open: async (page) => {
+      await page.waitForSelector('li.task');
+      await page.getByRole('button', { name: 'Rejeitar' }).first().click();
+    },
+  },
+  {
+    name: 'paleta de comandos',
+    kind: 'modal',
+    open: async (page) => {
+      await page.waitForSelector('li.task');
+      await page.keyboard.press('Control+k');
+    },
+  },
+  {
+    name: 'atalhos de teclado',
+    kind: 'modal',
+    open: async (page) => {
+      await page.waitForSelector('li.task');
+      await page.keyboard.press('?');
+    },
+  },
+  {
+    name: 'gaveta de notificações',
+    kind: 'drawer',
+    open: async (page) => {
+      await page.waitForSelector('li.task');
+      await page.getByRole('button', { name: 'Notificações' }).click();
+    },
+  },
+  {
+    name: 'gaveta de perfil',
+    kind: 'drawer',
+    open: async (page, mobile) => {
+      await page.waitForSelector('li.task');
+      if (mobile) {
+        await page.getByRole('button', { name: 'Mais' }).click();
+        await page.getByRole('button', { name: /Perfil de demonstração/ }).click();
+      } else {
+        await page.locator('.profile-trigger').click();
+      }
+    },
+  },
+  {
+    name: 'folha "Mais" do celular',
+    kind: 'drawer',
+    mobileOnly: true,
+    open: async (page) => {
+      await page.waitForSelector('li.task');
+      await page.getByRole('button', { name: 'Mais' }).click();
+    },
+  },
+];
+
+test.describe('diálogos e gavetas: axe zerado e geometria dentro da janela', () => {
+  for (const size of WIDTHS) {
+    for (const theme of ['light', 'dark'] as const) {
+      for (const overlay of OVERLAYS) {
+        if (overlay.mobileOnly && size.width > 600) continue;
+        test(`${overlay.name} · ${size.label} · tema ${theme}`, async ({ page }) => {
+          await page.setViewportSize({ width: size.width, height: size.height });
+          await open(page, '/inbox', 'approver', theme);
+          await overlay.open(page, size.width < 600);
+          const panel =
+            overlay.kind === 'modal'
+              ? page.locator('.ant-modal:visible').first()
+              : page.locator('.ant-drawer-open .ant-drawer-content-wrapper').first();
+          await expect(panel).toBeVisible();
+          await page.waitForTimeout(700);
+          await expectInsideViewport(page, panel);
+          await expectNoAxeViolations(page);
         });
       }
     }
@@ -73,12 +179,12 @@ test.describe('fluxo de aprovação', () => {
     const list = page.getByTestId('inbox-list');
     await expect(list).toBeVisible();
     const before = await list.locator('li.task').count();
-    const badge = page.locator('.sidebar .count-pill');
+    const badge = page.locator('.sider-body .app-menu-badge');
     await expect(badge).toHaveText(String(before));
     const task = list.locator('li.task').filter({ hasText: 'Conferência QCon' });
     await task.getByRole('button', { name: 'Aprovar' }).click();
-    await expect(page.getByRole('status').getByText(/OPS-0004 aprovada/)).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Desfazer' })).toBeVisible();
+    await expect(toast(page).getByText(/OPS-0004 aprovada/)).toBeVisible();
+    await expect(toast(page).getByRole('button', { name: 'Desfazer' })).toBeVisible();
     await expect(list.locator('li.task')).toHaveCount(before - 1);
     await expect(badge).toHaveText(String(before - 1));
     // Aprovada, ela só aparece no filtro "Para concluir".
@@ -102,9 +208,9 @@ test.describe('fluxo de aprovação', () => {
       .getByRole('button', { name: 'Aprovar' })
       .click();
     await expect(list.locator('li.task')).toHaveCount(before - 1);
-    await page.getByRole('button', { name: 'Desfazer' }).click();
+    await toast(page).getByRole('button', { name: 'Desfazer' }).click();
     await expect(list.locator('li.task')).toHaveCount(before);
-    await expect(page.locator('app-toasts').getByText('ação desfeita')).toBeVisible();
+    await expect(toast(page).getByText('ação desfeita')).toBeVisible();
   });
 
   test('aprovar fora do prazo explica o atraso e pede a justificativa', async ({ page }) => {
@@ -112,10 +218,10 @@ test.describe('fluxo de aprovação', () => {
     const late = page.getByTestId('inbox-list').locator('li.task[data-sla="breached"]').first();
     await expect(late.getByText('aprove com justificativa')).toBeVisible();
     await late.getByRole('button', { name: 'Aprovar' }).click();
-    const dialog = page.getByRole('dialog', { name: /Aprovar/ });
-    await expect(dialog.getByRole('note')).toContainText('passou do prazo há');
+    const dialog = page.locator('.ant-modal:visible');
+    await expect(dialog).toContainText('passou do prazo há');
     await dialog.getByRole('button', { name: 'Aprovar com justificativa' }).click();
-    await expect(dialog.getByRole('alert')).toBeVisible();
+    await expect(dialog.locator('.app-form-error')).toBeVisible();
     await dialog.getByLabel('Justificativa').fill('Aprovado com ciência da gestão.');
     await dialog.getByRole('button', { name: 'Aprovar com justificativa' }).click();
     await expect(dialog).toBeHidden();
@@ -124,19 +230,30 @@ test.describe('fluxo de aprovação', () => {
   test('rejeitar pede o comentário obrigatório antes de concluir', async ({ page }) => {
     await open(page, '/inbox');
     await page.getByRole('button', { name: 'Rejeitar' }).first().click();
-    const dialog = page.getByRole('dialog', { name: /Rejeitar/ });
+    const dialog = page.locator('.ant-modal:visible');
     await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: 'Confirmar' }).click();
-    await expect(dialog.getByRole('alert')).toContainText('comentário');
+    await expect(dialog.locator('.app-form-error')).toContainText('comentário');
     await dialog.getByLabel('Comentário').fill('Fora do orçamento do trimestre.');
     await dialog.getByRole('button', { name: 'Confirmar' }).click();
     await expect(dialog).toBeHidden();
     await expect(page.getByText(/rejeitada/).first()).toBeVisible();
   });
 
+  test('esc fecha o diálogo e devolve o foco ao botão que o abriu', async ({ page }) => {
+    await open(page, '/inbox');
+    const reject = page.getByRole('button', { name: 'Rejeitar' }).first();
+    await reject.focus();
+    await reject.click();
+    await expect(page.locator('.ant-modal:visible')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.ant-modal:visible')).toHaveCount(0);
+    await expect(reject).toBeFocused();
+  });
+
   test('lote: mostra progresso e resultado, e pula o que passou do prazo', async ({ page }) => {
     await open(page, '/inbox');
-    await page.getByRole('button', { name: 'Selecionar aptas ao lote' }).click();
+    await page.getByRole('checkbox', { name: 'Selecionar aptas ao lote' }).check();
     const bar = page.getByRole('region', { name: 'Ação em lote' });
     await expect(bar).toBeVisible();
     const button = bar.getByRole('button', { name: /Aprovar \d+ solicitaç/ });
@@ -162,7 +279,7 @@ test.describe('fluxo de aprovação', () => {
     await expect(focused.locator('a.title')).toBeFocused();
     const id = await focused.getAttribute('id');
     await page.keyboard.press('a');
-    await expect(page.getByRole('button', { name: 'Desfazer' })).toBeVisible();
+    await expect(toast(page).getByRole('button', { name: 'Desfazer' })).toBeVisible();
     await expect(page.locator(`#${id}`)).toHaveCount(0);
   });
 
@@ -170,7 +287,7 @@ test.describe('fluxo de aprovação', () => {
     await open(page, '/inbox');
     await page.waitForSelector('li.task');
     await page.locator('.profile-trigger').click();
-    await expect(page.getByRole('dialog', { name: 'Perfil de demonstração' })).toBeVisible();
+    await expect(page.locator('.ant-drawer-open .ant-drawer-content-wrapper')).toBeVisible();
     await page.keyboard.press('j');
     await expect(page.locator('li.task.focused')).toHaveCount(0);
   });
@@ -191,14 +308,15 @@ test.describe('quadro, papéis e dados', () => {
     await page.mouse.move(from.x + from.width / 2 + 12, from.y + 30, { steps: 4 });
     await page.mouse.move(to.x + to.width / 2, to.y + 40, { steps: 20 });
     await page.mouse.up();
-    await expect(page.getByText(/o fluxo não prevê essa transição/)).toBeVisible();
+    await expect(toast(page).getByText(/o fluxo não prevê essa transição/)).toBeVisible();
   });
 
   test('quadro move um cartão por "Mover para" (alternativa ao arrastar)', async ({ page }) => {
     await open(page, '/board');
     const card = page.locator('section[data-status="approved"] article').first();
     const code = (await card.locator('.code').innerText()).trim();
-    await card.getByRole('combobox').selectOption({ label: 'Concluído' });
+    await card.getByRole('button', { name: /Mover para/ }).click();
+    await page.locator('.ant-dropdown-menu-item', { hasText: 'Concluído' }).click();
     await expect(
       page.locator('section[data-status="completed"] article', { hasText: code }),
     ).toBeVisible();
@@ -206,9 +324,7 @@ test.describe('quadro, papéis e dados', () => {
 
   test('solicitante não abre a solicitação de outra pessoa (403 do servidor)', async ({ page }) => {
     await open(page, '/requests/req-1', 'requester');
-    await expect(
-      page.getByRole('heading', { name: 'Você não tem acesso a esta solicitação' }),
-    ).toBeVisible();
+    await expect(page.getByText('Você não tem acesso a esta solicitação')).toBeVisible();
     await expect(page.getByTestId('audit-timeline')).toHaveCount(0);
   });
 
@@ -230,14 +346,12 @@ test.describe('quadro, papéis e dados', () => {
     await open(page, '/inbox', 'auditor');
     await expect(page.getByText('Tudo em dia')).toBeVisible();
     await page.goto('./#/analytics');
-    await expect(page.locator('app-donut-chart')).toBeVisible();
+    await expect(page.locator('app-chart svg').first()).toBeVisible();
   });
 
   test('análises exigem acesso à auditoria: solicitante vê o aviso', async ({ page }) => {
     await open(page, '/analytics', 'requester');
-    await expect(
-      page.getByRole('heading', { name: 'Análises exigem acesso à auditoria' }),
-    ).toBeVisible();
+    await expect(page.getByText('Análises exigem acesso à auditoria').first()).toBeVisible();
   });
 
   test('comentário em thread é publicado no detalhe', async ({ page }) => {
@@ -252,16 +366,16 @@ test.describe('quadro, papéis e dados', () => {
   test('trocar de papel recarrega os dados: o aprovador volta a ver tudo', async ({ page }) => {
     await open(page, '/requests', 'requester');
     await page.waitForSelector('[data-testid="request-list"]', { state: 'attached' });
-    const own = await page.locator('[data-testid="request-list"] tbody tr').count();
+    const own = await page.locator('[data-testid="request-list"] tbody .person').count();
     await page.locator('.profile-trigger').click();
     await page
-      .getByRole('dialog', { name: 'Perfil de demonstração' })
-      .getByText('Aprovador')
+      .locator('.ant-drawer-open .ant-drawer-content-wrapper')
+      .getByText('Aprovador', { exact: true })
       .first()
       .click();
     await page.keyboard.press('Escape');
     await expect
-      .poll(() => page.locator('[data-testid="request-list"] tbody tr').count())
+      .poll(() => page.locator('[data-testid="request-list"] tbody .person').count())
       .toBeGreaterThan(own);
   });
 });
@@ -279,11 +393,19 @@ test.describe('wizard, paleta e navegação', () => {
     await expect(page.getByLabel('Título')).toHaveValue('');
   });
 
-  test('wizard cria a solicitação e abre o detalhe', async ({ page }) => {
+  test('wizard valida os campos e cria a solicitação', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(String(error)));
+    page.on('console', (message) => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
     await open(page, '/requests/new', 'requester');
+    await page.getByRole('button', { name: 'Avançar' }).click();
+    await expect(page.locator('.app-form-error').first()).toBeVisible();
     await page.getByLabel('Título').fill('Licenças Figma para o time de Design');
     await page.getByLabel('Valor (R$)').fill('21600');
     await page.getByRole('button', { name: 'Avançar' }).click();
+    await expect(page.locator('.ant-picker')).toBeVisible();
     await page.getByRole('button', { name: 'Avançar' }).click();
     await expect(page.getByTestId('wizard-summary')).toContainText('Licenças Figma');
     await page.getByRole('button', { name: 'Enviar para revisão' }).click();
@@ -291,22 +413,23 @@ test.describe('wizard, paleta e navegação', () => {
     await expect(
       page.getByRole('heading', { name: 'Licenças Figma para o time de Design' }),
     ).toBeVisible();
+    expect(errors).toEqual([]);
   });
 
-  test('paleta de comandos (Ctrl+K) navega e o menu volta o foco ao fechar', async ({ page }) => {
+  test('paleta de comandos (Ctrl+K) navega e o perfil volta o foco ao fechar', async ({ page }) => {
     await open(page, '/inbox');
     await page.waitForSelector('li.task');
     await page.keyboard.press('Control+k');
-    const palette = page.getByRole('dialog', { name: 'Paleta de comandos' });
+    const palette = page.locator('.ant-modal:visible');
     await expect(palette).toBeVisible();
-    await page.getByRole('combobox').fill('analises');
+    await palette.getByRole('searchbox').fill('analises');
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/analytics/);
     const trigger = page.locator('.profile-trigger');
     await trigger.click();
-    await expect(page.getByRole('dialog', { name: 'Perfil de demonstração' })).toBeVisible();
+    await expect(page.locator('.ant-drawer-open .ant-drawer-content-wrapper')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(trigger).toBeFocused();
+    await expect(page.locator('.ant-drawer-open .ant-drawer-content-wrapper')).toHaveCount(0);
   });
 
   test('recarregar numa rota interna continua funcionando (subcaminho + hash)', async ({
@@ -324,6 +447,27 @@ test.describe('wizard, paleta e navegação', () => {
     await expect(page.getByRole('link', { name: /Inbox/ }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: 'Analytics' }).first()).toBeVisible();
   });
+
+  test('o menu lateral recolhe e continua navegável', async ({ page }) => {
+    await open(page, '/inbox');
+    await page.getByRole('button', { name: 'Recolher menu lateral' }).click();
+    await expect(page.getByRole('link', { name: 'Quadro' }).first()).toBeVisible();
+    await page.getByRole('link', { name: 'Quadro' }).first().click();
+    await expect(page).toHaveURL(/#\/board/);
+  });
+
+  test('tema escuro aplica a folha escura do NG-ZORRO e persiste', async ({ page }) => {
+    await open(page, '/inbox', 'approver', 'dark');
+    await page.waitForSelector('li.task');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(background).toBe('rgb(17, 20, 24)');
+    const sider = await page.evaluate(
+      () =>
+        getComputedStyle(document.querySelector('.ant-layout-sider') as Element).backgroundColor,
+    );
+    expect(sider).toBe('rgb(13, 16, 19)');
+  });
 });
 
 test.describe('celular', () => {
@@ -338,7 +482,7 @@ test.describe('celular', () => {
     await expect(nav.getByRole('link', { name: 'Quadro' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'Solicitações' })).toBeVisible();
     await nav.getByRole('button', { name: 'Mais' }).click();
-    const sheet = page.getByRole('dialog', { name: 'Mais telas' });
+    const sheet = page.locator('.ant-drawer-open .ant-drawer-content-wrapper');
     await expect(sheet).toBeVisible();
     await expect(sheet.getByRole('link', { name: 'Administração' })).toBeVisible();
     await expect(sheet.getByRole('link', { name: 'Análises' })).toBeVisible();
@@ -347,11 +491,40 @@ test.describe('celular', () => {
     await expect(page).toHaveURL(/#\/admin/);
   });
 
+  test('o menu hambúrguer abre a gaveta de navegação', async ({ page }) => {
+    await open(page, '/inbox');
+    await page.getByRole('button', { name: 'Abrir menu de navegação' }).click();
+    const drawer = page.locator('.ant-drawer-open .ant-drawer-content-wrapper');
+    await expect(drawer.getByRole('link', { name: /Quadro/ })).toBeVisible();
+    await drawer.getByRole('link', { name: /Quadro/ }).click();
+    await expect(page).toHaveURL(/#\/board/);
+  });
+
   test('solicitante ganha "Nova" no lugar de "Quadro" na barra inferior', async ({ page }) => {
     await open(page, '/inbox', 'requester');
     const nav = page.getByRole('navigation', { name: 'Navegação principal' }).last();
     await expect(nav.getByRole('link', { name: 'Nova' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'Quadro' })).toHaveCount(0);
+  });
+
+  test('alvos de toque têm pelo menos 44 px nos botões e na barra inferior', async ({ page }) => {
+    await open(page, '/inbox');
+    await page.waitForSelector('li.task');
+    const small = await page.evaluate(() =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>(
+          'main button, .app-bottom-nav a, .app-bottom-nav button, .ant-layout-header button',
+        ),
+      )
+        .filter((element) => element.offsetParent !== null)
+        .map((element) => ({
+          name: element.textContent?.trim() ?? '',
+          h: element.offsetHeight,
+          w: element.offsetWidth,
+        }))
+        .filter((box) => box.h < 44 || box.w < 44),
+    );
+    expect(small).toEqual([]);
   });
 
   test('lista em cartões mostra 15 e carrega o resto sob demanda', async ({ page }) => {

@@ -1,8 +1,14 @@
-import { CdkTrapFocus } from '@angular/cdk/a11y';
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Injectable,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { WorkflowAction } from '../../domain/request.model';
-import { Icon } from '../../shared/icon';
+import { AppAlert, AppButton, AppFormItem, AppInput, AppModal } from '../../ui';
 import { TranslatePipe } from '../i18n/translate.pipe';
 
 export interface CommentPromptData {
@@ -14,72 +20,115 @@ export interface CommentPromptData {
   readonly overdue: string | null;
 }
 
+interface OpenPrompt {
+  readonly data: CommentPromptData;
+  readonly resolve: (value: string | undefined) => void;
+}
+
+/** Fila de um pedido de comentário por vez: a tela só desenha, quem pede espera a resposta. */
+@Injectable({ providedIn: 'root' })
+export class CommentPromptService {
+  private readonly current = signal<OpenPrompt | null>(null);
+  readonly open = this.current.asReadonly();
+
+  ask(data: CommentPromptData): Promise<string | undefined> {
+    return new Promise((resolve) => this.current.set({ data, resolve }));
+  }
+
+  answer(value: string | undefined): void {
+    const prompt = this.current();
+    this.current.set(null);
+    prompt?.resolve(value);
+  }
+}
+
 /** Pede o comentário obrigatório antes de devolver, rejeitar ou aprovar fora do SLA. */
 @Component({
   selector: 'app-comment-prompt',
-  imports: [CdkTrapFocus, TranslatePipe, Icon],
+  imports: [FormsModule, AppModal, AppButton, AppFormItem, AppInput, AppAlert, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: `
-    .overdue {
-      margin: 0;
-      padding: var(--ox-space-3);
-      color: var(--ox-color-danger);
-      background: var(--ox-color-danger-surface);
-      border-radius: var(--ox-radius-md);
-      line-height: 1.45;
+  template: `
+    @if (prompt.open(); as current) {
+      <app-modal
+        [open]="true"
+        [title]="('action.' + current.data.action | t) + ' · ' + current.data.code"
+        [footer]="true"
+        [width]="480"
+        [autofocus]="null"
+        (closed)="cancel()"
+      >
+        @if (current.data.overdue) {
+          <app-alert
+            type="error"
+            [message]="'prompt.overdue' | t: { time: current.data.overdue }"
+            [showIcon]="true"
+          />
+          <div class="gap"></div>
+        }
+        <app-form-item
+          forId="prompt-comment"
+          [label]="(current.data.justification ? 'prompt.justification' : 'detail.comment') | t"
+          [hint]="'prompt.hint' | t"
+          [error]="
+            error()
+              ? ((current.data.justification
+                  ? 'error.justification_required'
+                  : 'error.comment_required'
+                ) | t)
+              : null
+          "
+          [required]="true"
+        >
+          <app-input
+            type="textarea"
+            inputId="prompt-comment"
+            [rows]="4"
+            [invalid]="error()"
+            [describedBy]="error() ? 'prompt-comment-error' : 'prompt-comment-hint'"
+            (keydown.control.enter)="confirm()"
+            [ngModel]="text()"
+            (ngModelChange)="onText($event)"
+          />
+        </app-form-item>
+        <div appModalFooter class="actions">
+          <app-button (click)="cancel()">{{ 'wizard.cancel' | t }}</app-button>
+          <app-button variant="primary" icon="check" (click)="confirm()">
+            {{
+              (current.data.justification ? 'prompt.approveWithJustification' : 'prompt.confirm')
+                | t
+            }}
+          </app-button>
+        </div>
+      </app-modal>
     }
   `,
-  template: `
-    <form
-      class="dialog-card"
-      cdkTrapFocus
-      [cdkTrapFocusAutoCapture]="true"
-      (submit)="$event.preventDefault(); confirm()"
-    >
-      <h2 id="prompt-title">
-        {{ 'action.' + data.action | t }} · <span class="mono">{{ data.code }}</span>
-      </h2>
-      @if (data.overdue) {
-        <p class="overdue" role="note">{{ 'prompt.overdue' | t: { time: data.overdue } }}</p>
-      }
-      <div class="field">
-        <label for="prompt-comment">
-          {{ (data.justification ? 'prompt.justification' : 'detail.comment') | t }}
-        </label>
-        <textarea
-          id="prompt-comment"
-          rows="4"
-          [value]="text()"
-          (input)="onInput($event)"
-          [attr.aria-invalid]="error() ? 'true' : null"
-          aria-describedby="prompt-hint"
-        ></textarea>
-        <p id="prompt-hint" class="hint">{{ 'prompt.hint' | t }}</p>
-        @if (error()) {
-          <p class="field-error" role="alert">
-            {{
-              (data.justification ? 'error.justification_required' : 'error.comment_required') | t
-            }}
-          </p>
-        }
-      </div>
-      <div class="dialog-actions">
-        <button type="button" class="btn" (click)="ref.close()">{{ 'wizard.cancel' | t }}</button>
-        <button type="submit" class="btn btn-primary">
-          <app-icon name="check" />{{ (data.justification ? 'prompt.approveWithJustification' : 'prompt.confirm') | t }}
-        </button>
-      </div>
-    </form>
+  styles: `
+    .gap {
+      height: 0.75rem;
+    }
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
   `,
 })
-export class CommentPrompt {
-  protected readonly data = inject<CommentPromptData>(DIALOG_DATA);
-  protected readonly ref = inject<DialogRef<string>>(DialogRef);
+export class CommentPromptHost {
+  protected readonly prompt = inject(CommentPromptService);
   protected readonly text = signal('');
   protected readonly error = signal(false);
 
-  protected onInput(event: Event): void {
-    this.text.set((event.target as HTMLTextAreaElement).value);
+  constructor() {
+    // Foco no campo do comentário ao abrir (depois da animação do modal).
+    effect(() => {
+      if (this.prompt.open()) {
+        setTimeout(() => document.getElementById('prompt-comment')?.focus(), 200);
+      }
+    });
+  }
+
+  protected onText(value: string): void {
+    this.text.set(value);
     this.error.set(false);
   }
 
@@ -89,6 +138,17 @@ export class CommentPrompt {
       this.error.set(true);
       return;
     }
-    this.ref.close(value);
+    this.reset();
+    this.prompt.answer(value);
+  }
+
+  protected cancel(): void {
+    this.reset();
+    this.prompt.answer(undefined);
+  }
+
+  private reset(): void {
+    this.text.set('');
+    this.error.set(false);
   }
 }

@@ -1,148 +1,116 @@
-import { CdkTrapFocus } from '@angular/cdk/a11y';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { Avatar } from '../../shared/avatar';
-import { Icon } from '../../shared/icon';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { AppAvatar, AppIcon, UiIconName } from '../../ui';
 import { TranslatePipe } from '../i18n/translate.pipe';
 import { SessionStore } from '../session/session.store';
 import { Shortcuts } from '../ui/shortcuts.service';
-import { Popover } from './popover';
-import { ProfilePanel } from './profile-panel';
+import { PanelKey, ShellPanels } from './panels';
 
-/** Folha "Mais" do celular: o que não cabe na barra inferior. */
+interface MoreLink {
+  readonly href: string;
+  readonly icon: UiIconName;
+  readonly label: string;
+}
+
+/** Folha "Mais" do celular: telas que não cabem na barra inferior, paleta, atalhos e perfil. */
 @Component({
   selector: 'app-more-panel',
-  imports: [CdkTrapFocus, RouterLink, TranslatePipe, Avatar, Icon],
+  imports: [TranslatePipe, AppIcon, AppAvatar],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
-    :host {
-      display: block;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
     ul {
       display: grid;
-      gap: 2px;
+      gap: 0.25rem;
       margin: 0;
       padding: 0;
       list-style: none;
     }
     a,
-    button.row {
+    button {
       display: flex;
       align-items: center;
-      gap: var(--ox-space-3);
+      gap: 0.75rem;
       width: 100%;
-      min-height: var(--ox-tap);
-      padding: 0 var(--ox-space-3);
-      color: var(--ox-color-text);
-      font-weight: var(--ox-font-weight-medium);
+      min-height: 2.75rem;
+      padding: 0 0.75rem;
+      color: inherit;
+      font: inherit;
       text-align: left;
       text-decoration: none;
-      background: transparent;
+      background: none;
       border: 0;
-      border-radius: var(--ox-radius-md);
+      border-radius: 8px;
       cursor: pointer;
     }
     a:hover,
-    button.row:hover {
+    button:hover {
       background: var(--ox-hover);
     }
     .who {
       display: grid;
       line-height: 1.25;
     }
-    small {
-      font-weight: var(--ox-font-weight-regular);
-      color: var(--ox-color-text-muted);
-    }
   `,
   template: `
-    <div
-      class="popover-card"
-      role="dialog"
-      aria-modal="true"
-      [attr.aria-label]="'app.nav.more' | t"
-      cdkTrapFocus
-      [cdkTrapFocusAutoCapture]="true"
-    >
-      <header>
-        <h2>{{ 'app.nav.more' | t }}</h2>
-        <button
-          type="button"
-          class="btn btn-ghost btn-icon"
-          [attr.aria-label]="'app.close' | t"
-          (click)="close()"
-        >
-          <app-icon name="x" />
+    <ul>
+      @for (link of links(); track link.href) {
+        <li>
+          <a [attr.href]="link.href" (click)="panels.close()">
+            <app-icon [name]="link.icon" [size]="1.125" />{{ link.label | t }}
+          </a>
+        </li>
+      }
+      <li>
+        <button type="button" (click)="openPalette()">
+          <app-icon name="search" [size]="1.125" />{{ 'palette.open' | t }}
         </button>
-      </header>
-      <ul>
-        @if (session.can('audit.view')) {
-          <li>
-            <a routerLink="/analytics" (click)="close(false)"
-              ><app-icon name="chart" />{{ 'app.nav.analytics' | t }}</a
+      </li>
+      <li>
+        <button type="button" (click)="openShortcuts()">
+          <app-icon name="question-circle" [size]="1.125" />{{ 'shortcuts.title' | t }}
+        </button>
+      </li>
+      <li>
+        <button type="button" (click)="open('profile')">
+          <app-avatar [name]="session.actor().name" size="small" />
+          <span class="who">
+            <span>{{ 'app.profile' | t }}</span>
+            <small class="muted"
+              >{{ session.actor().name }} · {{ 'role.' + session.currentRole() | t }}</small
             >
-          </li>
-        }
-        <li>
-          <a routerLink="/admin" (click)="close(false)"
-            ><app-icon name="shield" />{{ 'app.nav.admin' | t }}</a
-          >
-        </li>
-        @if (session.can('request.create')) {
-          <li>
-            <a routerLink="/requests/new" (click)="close(false)"
-              ><app-icon name="plusCircle" />{{ 'app.nav.new' | t }}</a
-            >
-          </li>
-        }
-        <li>
-          <button type="button" class="row" (click)="openPalette()">
-            <app-icon name="command" />{{ 'palette.open' | t }}
-          </button>
-        </li>
-        <li>
-          <button type="button" class="row" (click)="openShortcuts()">
-            <app-icon name="keyboard" />{{ 'shortcuts.title' | t }}
-          </button>
-        </li>
-        <li>
-          <button type="button" class="row" (click)="openProfile()">
-            <app-avatar [name]="session.actor().name" size="sm" />
-            <span class="who">
-              {{ 'app.profile' | t }}
-              <small>{{ session.actor().name }} · {{ 'role.' + session.currentRole() | t }}</small>
-            </span>
-          </button>
-        </li>
-      </ul>
-    </div>
+          </span>
+        </button>
+      </li>
+    </ul>
   `,
 })
 export class MorePanel {
+  protected readonly panels = inject(ShellPanels);
   protected readonly session = inject(SessionStore);
-  private readonly popover = inject(Popover);
   private readonly shortcuts = inject(Shortcuts);
 
-  protected close(restoreFocus = true): void {
-    this.popover.close(restoreFocus);
-  }
+  protected readonly links = computed<MoreLink[]>(() => {
+    const links: MoreLink[] = [];
+    if (this.session.can('audit.view')) {
+      links.push({ href: '#/analytics', icon: 'bar-chart', label: 'app.nav.analytics' });
+    }
+    links.push({ href: '#/admin', icon: 'safety', label: 'app.nav.admin' });
+    if (this.session.can('request.create')) {
+      links.push({ href: '#/requests/new', icon: 'plus-circle', label: 'app.nav.new' });
+    }
+    return links;
+  });
 
-  protected openProfile(): void {
-    this.popover.swap('profile', ProfilePanel);
+  protected open(key: PanelKey): void {
+    this.panels.open(key);
   }
 
   protected openPalette(): void {
-    this.popover.close(false);
+    this.panels.close();
     this.shortcuts.openPalette();
   }
 
   protected openShortcuts(): void {
-    this.popover.close(false);
+    this.panels.close();
     this.shortcuts.openHelp();
   }
 }

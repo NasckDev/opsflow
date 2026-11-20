@@ -1,40 +1,39 @@
 <section class="page" aria-labelledby="list-title">
-  <header class="page-header">
-    <div class="titles">
-      <h1 id="list-title" tabindex="-1">{{ 'list.title' | t }}</h1>
-      <p class="muted">{{ 'list.subtitle' | t }}</p>
-    </div>
-    <div class="header-actions">
-      <button type="button" class="btn" (click)="exportCsv()" [disabled]="visible().length === 0">
-        <app-icon name="download" />{{ 'list.export' | t }}
-      </button>
+  <app-page-header
+    titleId="list-title"
+    [title]="'list.title' | t"
+    [subtitle]="'list.subtitle' | t"
+    [breadcrumb]="[{ label: 'OpsFlow', href: '#/inbox' }, { label: 'app.nav.requests' | t }]"
+  >
+    <div appPageActions>
+      <app-button icon="download" [disabled]="visible().length === 0" (click)="exportCsv()">
+        {{ 'list.export' | t }}
+      </app-button>
       @if (session.can('request.create')) {
-        <a class="btn btn-primary new-desktop" routerLink="/requests/new">
-          <app-icon name="plus" />{{ 'list.new' | t }}
-        </a>
+        <app-button variant="primary" icon="plus" (click)="goNew()">{{ 'list.new' | t }}</app-button>
       }
     </div>
-  </header>
+  </app-page-header>
 
   <div class="toolbar">
-    <div class="search-mobile">
-      <app-icon name="search" />
-      <input
+    @if (viewport.mobile()) {
+      <app-input
         type="search"
-        [attr.aria-label]="'app.search' | t"
+        prefixIcon="search"
+        [ariaLabel]="'app.search' | t"
         [placeholder]="'app.searchPlaceholder' | t"
-        [value]="search.query()"
-        (input)="onQuery($event)"
+        [ngModel]="search.query()"
+        (ngModelChange)="onQuery($event)"
       />
-    </div>
+    }
     <div class="chips" role="group" [attr.aria-label]="'list.filter' | t">
-      <button type="button" class="filter" [attr.aria-pressed]="status() === ''" (click)="setStatus('')">
+      <app-tag [checkable]="true" [checked]="status() === ''" (toggled)="setStatus('')">
         {{ 'list.allShort' | t }}<span class="count">{{ counts().all }}</span>
-      </button>
+      </app-tag>
       @for (item of statuses; track item) {
-        <button type="button" class="filter" [attr.aria-pressed]="status() === item" (click)="setStatus(item)">
+        <app-tag [checkable]="true" [checked]="status() === item" (toggled)="setStatus(item)">
           {{ 'status.' + item | t }}<span class="count">{{ counts()[item] }}</span>
-        </button>
+        </app-tag>
       }
     </div>
   </div>
@@ -43,99 +42,38 @@
     @let current = state();
     @switch (current.kind) {
       @case ('loading') {
-        <div role="status" class="skeletons">
-          <span class="visually-hidden">{{ 'list.loading' | t }}</span>
-          @for (row of skeletonRows; track row) {
-            <div class="skeleton-row" aria-hidden="true">
-              <span class="skeleton" style="width: 4.5rem"></span>
-              <span class="skeleton" style="width: 60%"></span>
-              <span class="skeleton skeleton-hide-sm" style="width: 70%"></span>
-              <span class="skeleton skeleton-pill"></span>
-              <span class="skeleton skeleton-hide-sm" style="width: 60%"></span>
-            </div>
-          }
-        </div>
+        <app-skeleton [label]="'list.loading' | t" [count]="6" [rows]="1" />
       }
       @case ('error') {
-        <div class="state state-error" role="alert">
-          <svg class="illustration" viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="14" y="14" width="92" height="62" rx="8" />
-            <path d="M14 30h92" />
-            <circle cx="24" cy="22" r="1.5" />
-            <circle cx="31" cy="22" r="1.5" />
-            <path d="M60 44v12M60 64h.01" stroke-width="3" />
-          </svg>
-          <h2>{{ 'list.error.title' | t }}</h2>
-          <p>{{ 'list.error.hint' | t }}</p>
-          <button type="button" class="btn btn-primary" (click)="retry()">
-            <app-icon name="refresh" />{{ 'list.retry' | t }}
-          </button>
-        </div>
+        <app-result status="error" [title]="'list.error.title' | t" [description]="'list.error.hint' | t">
+          <app-button variant="primary" icon="reload" (click)="retry()">{{ 'list.retry' | t }}</app-button>
+        </app-result>
       }
       @case ('loaded') {
         @if (visible().length === 0) {
-          <div class="state">
-            <svg class="illustration" viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M18 54h26l6 10h20l6-10h26" />
-              <path d="M24 54 34 24h52l10 30v22a6 6 0 0 1-6 6H30a6 6 0 0 1-6-6z" />
-              <path d="M46 40h28M50 48h20" opacity=".6" />
-            </svg>
-            <h2>{{ 'list.empty.title' | t }}</h2>
-            <p>{{ 'list.empty.hint' | t }}</p>
-            @if (hasFilters()) {
-              <button type="button" class="btn" (click)="clearFilters()">{{ 'list.clear' | t }}</button>
-            } @else if (session.can('request.create')) {
-              <a class="btn btn-primary" routerLink="/requests/new"><app-icon name="plus" />{{ 'list.new' | t }}</a>
-            }
-          </div>
+          <app-card>
+            <app-empty [title]="'list.empty.title' | t" [description]="'list.empty.hint' | t">
+              @if (hasFilters()) {
+                <app-button (click)="clearFilters()">{{ 'list.clear' | t }}</app-button>
+              } @else if (session.can('request.create')) {
+                <app-button variant="primary" icon="plus" (click)="goNew()">{{ 'list.new' | t }}</app-button>
+              }
+            </app-empty>
+          </app-card>
         } @else {
           <p class="visually-hidden" role="status">{{ 'list.count' | t: { count: visible().length } }}</p>
 
-          <div class="table-wrap card">
-            <table data-testid="request-list">
-              <thead>
-                <tr>
-                  @for (column of columns; track column.key) {
-                    <th scope="col" [attr.aria-sort]="ariaSort(column.key)" [class.end]="column.align === 'end'">
-                      <button type="button" class="sort" [attr.aria-label]="'list.sortBy' | t: { column: (column.label | t) }" (click)="onSort(column.key)">
-                        {{ column.label | t }}<app-icon [name]="sortIcon(column.key)" [size]="0.875" />
-                      </button>
-                    </th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (request of visible(); track request.id) {
-                  <tr>
-                    <td class="mono code">{{ request.code }}</td>
-                    <td class="title-cell">
-                      <a class="row-link" [routerLink]="['/requests', request.id]">{{ request.title }}</a>
-                      <span class="muted sub">{{ 'category.' + request.category | t }}</span>
-                    </td>
-                    <td>
-                      <span class="person"><app-avatar [name]="request.requester" size="sm" />{{ request.requester }}</span>
-                    </td>
-                    <td><app-status-badge [status]="request.status" /></td>
-                    <td><app-priority [priority]="request.priority" /></td>
-                    <td class="end num">{{ request.amount | money }}</td>
-                    <td><app-sla-meter [request]="request" /></td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <ul class="cards">
-            @for (request of cards(); track request.id) {
-              <li>
-                <a class="req-card card" [routerLink]="['/requests', request.id]">
+          @if (viewport.mobile()) {
+            <app-list [data]="cards()" [ariaLabel]="'list.title' | t">
+              <ng-template let-request>
+                <a class="req-card" [attr.href]="'#/requests/' + request.id">
                   <span class="req-top">
                     <span class="mono muted">{{ request.code }}</span>
                     <app-status-badge [status]="request.status" />
                   </span>
                   <strong class="req-title">{{ request.title }}</strong>
                   <span class="req-meta">
-                    <span class="person"><app-avatar [name]="request.requester" size="sm" />{{ request.requester }}</span>
+                    <span class="person"><app-avatar [name]="request.requester" size="small" />{{ request.requester }}</span>
                     <span class="num amount">{{ request.amount | money }}</span>
                   </span>
                   <span class="req-foot">
@@ -143,11 +81,52 @@
                     <app-sla-meter [request]="request" />
                   </span>
                 </a>
-              </li>
-            }
-          </ul>
-          @if (moreCards() > 0) {
-            <button type="button" class="btn more-cards" (click)="showMore()">{{ 'list.showMore' | t: { count: moreCards() } }}</button>
+              </ng-template>
+              @if (moreCards() > 0) {
+                <div class="more-cards">
+                  <app-button [block]="true" (click)="showMore()">
+                    {{ 'list.showMore' | t: { count: moreCards() } }}
+                  </app-button>
+                </div>
+              }
+            </app-list>
+          } @else {
+            <app-card size="small" [flush]="true">
+              <app-table
+                data-testid="request-list"
+                [columns]="columns()"
+                [data]="visible()"
+                [pageSize]="15"
+                [pageSizes]="[15, 30, 60]"
+                [sort]="tableSort()"
+                [sortLabel]="sortLabel()"
+                [totalLabel]="totalLabel"
+                (sortChange)="onSort($event)"
+              >
+                <ng-template appTableCell="code" let-request>
+                  <span class="mono code">{{ request.code }}</span>
+                </ng-template>
+                <ng-template appTableCell="title" let-request>
+                  <a class="row-link" [attr.href]="'#/requests/' + request.id">{{ request.title }}</a>
+                  <span class="muted sub">{{ 'category.' + request.category | t }}</span>
+                </ng-template>
+                <ng-template appTableCell="requester" let-request>
+                  <span class="person"><app-avatar [name]="request.requester" size="small" />{{ request.requester }}</span>
+                </ng-template>
+                <ng-template appTableCell="status" let-request>
+                  <app-status-badge [status]="request.status" />
+                </ng-template>
+                <ng-template appTableCell="priority" let-request>
+                  <app-priority [priority]="request.priority" />
+                </ng-template>
+                <ng-template appTableCell="amount" let-request>
+                  <span class="num">{{ request.amount | money }}</span>
+                </ng-template>
+                <ng-template appTableCell="dueAt" let-request>
+                  <app-sla-meter [request]="request" />
+                </ng-template>
+              </app-table>
+            </app-card>
           }
         }
       }
