@@ -50,3 +50,4 @@ dist-portable
 
 # Gerado por scripts/build-theme-dark.mjs
 /public/theme-dark.css
+/dist-stats
