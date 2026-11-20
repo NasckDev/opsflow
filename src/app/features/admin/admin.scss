@@ -15,6 +15,7 @@
 }
 
 .scroll {
+  position: relative;
   overflow-x: auto;
   margin: 0 calc(var(--ox-space-5) * -1) var(--ox-space-3);
   padding: 0 var(--ox-space-5);

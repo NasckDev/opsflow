@@ -82,9 +82,9 @@ const ICONS: Readonly<Record<ToastKind, IconName>> = {
     }
     @media (max-width: 959px) {
       :host {
-        left: 50%;
-        right: auto;
-        transform: translateX(-50%);
+        left: 0;
+        right: 0;
+        margin: 0 auto;
         bottom: calc(var(--ox-bottomnav-h) + var(--ox-safe-bottom) + var(--ox-space-3));
       }
     }

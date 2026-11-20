@@ -4,6 +4,7 @@
 }
 
 .board {
+  position: relative;
   display: flex;
   gap: var(--ox-space-3);
   align-items: flex-start;

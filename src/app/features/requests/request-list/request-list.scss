@@ -31,6 +31,7 @@
 }
 
 .chips {
+  position: relative;
   display: flex;
   gap: var(--ox-space-2);
   overflow-x: auto;
@@ -91,6 +92,7 @@
 
 /* Tabela (desktop) */
 .table-wrap {
+  position: relative;
   display: none;
   overflow: hidden;
 }

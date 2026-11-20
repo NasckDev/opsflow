@@ -10,6 +10,7 @@
 }
 
 .chips {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: var(--ox-space-2);

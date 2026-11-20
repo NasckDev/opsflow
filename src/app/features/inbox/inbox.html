@@ -48,10 +48,6 @@
           }
         </select>
       </label>
-      <label class="check">
-        <input type="checkbox" [checked]="filter().urgentOnly" (change)="patchFilter({ urgentOnly: !filter().urgentOnly })" />
-        {{ 'inbox.preset.urgent' | t }}
-      </label>
       @if (isCustomFilter()) {
         @if (naming()) {
           <form class="name-form" (submit)="$event.preventDefault(); saveFilter(nameField.value)">
