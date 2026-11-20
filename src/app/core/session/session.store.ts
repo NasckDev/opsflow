@@ -42,6 +42,7 @@ export class SessionStore {
 
   private initialRole(): Role {
     const stored = readStorage(STORAGE_KEY);
-    return isRole(stored) ? stored : 'requester';
+    // A demo abre como Aprovador: é onde está o valor (decidir o que está na fila).
+    return isRole(stored) ? stored : 'approver';
   }
 }

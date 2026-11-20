@@ -126,3 +126,65 @@
 .side > * {
   min-width: 0;
 }
+
+.role-cards {
+  display: none;
+  gap: var(--ox-space-3);
+  margin: 0 0 var(--ox-space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.role-card {
+  padding: var(--ox-space-3) var(--ox-space-4);
+  border: 1px solid var(--ox-color-border);
+  border-radius: var(--ox-radius-md);
+
+  &.current {
+    background: var(--ox-color-accent-surface);
+    border-color: color-mix(in srgb, var(--ox-color-accent) 45%, transparent);
+  }
+}
+
+.role-name {
+  display: flex;
+  align-items: center;
+  gap: var(--ox-space-2);
+  margin-bottom: var(--ox-space-2);
+}
+
+.granted {
+  display: grid;
+  gap: var(--ox-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: var(--ox-space-2);
+  }
+
+  app-icon {
+    color: var(--ox-color-success);
+  }
+
+  .none {
+    color: var(--ox-color-text-muted);
+  }
+}
+
+.scroll:focus-visible {
+  outline-offset: -2px;
+}
+
+@media (max-width: 959px) {
+  .scroll {
+    display: none;
+  }
+
+  .role-cards {
+    display: grid;
+  }
+}

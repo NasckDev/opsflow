@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { TranslatePipe } from '../core/i18n/translate.pipe';
 import { NowService } from '../core/time/now.service';
 import { WorkflowRequest } from '../domain/request.model';
-import { evaluateSla, formatCountdown } from '../domain/sla';
+import { evaluateSla, formatCountdown, formatHours, slaOutcome } from '../domain/sla';
 import { Icon } from './icon';
 
 /** Contagem regressiva do SLA, com cor e ícone por risco (nunca só cor). */
@@ -32,13 +32,18 @@ import { Icon } from './icon';
     }
     :host([data-sla='closed']) {
       --tone: var(--ox-color-text-muted);
+      white-space: normal;
     }
   `,
   template: `
     <app-icon [name]="sla().state === 'breached' ? 'alert' : 'clock'" [size]="0.875" />
     @switch (sla().state) {
       @case ('closed') {
-        {{ 'sla.closed' | t }}
+        @if (outcome(); as result) {
+          {{ (result.late ? 'sla.decidedLate' : 'sla.decidedOnTime') | t: { time: outcomeTime() } }}
+        } @else {
+          {{ 'sla.closed' | t }}
+        }
       }
       @case ('breached') {
         {{ 'sla.overdueShort' | t: { time: time() } }}
@@ -50,9 +55,11 @@ import { Icon } from './icon';
   `,
 })
 export class Countdown {
-  readonly request = input.required<Pick<WorkflowRequest, 'dueAt' | 'status'>>();
+  readonly request = input.required<Pick<WorkflowRequest, 'dueAt' | 'status' | 'audit'>>();
   private readonly clock = inject(NowService);
   protected readonly sla = computed(() => evaluateSla(this.request(), this.clock.now()));
+  protected readonly outcome = computed(() => slaOutcome(this.request()));
+  protected readonly outcomeTime = computed(() => formatHours(this.outcome()?.hours ?? 0));
   protected readonly time = computed(() =>
     formatCountdown(Date.parse(this.request().dueAt) - this.clock.now().getTime()),
   );

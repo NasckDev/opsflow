@@ -33,11 +33,11 @@ describe('buildApprovalChain', () => {
     expect(chain.map((step) => step.state)).toEqual(['current', 'pending', 'pending', 'pending']);
   });
 
-  it('shows review and approval as both current while in review', () => {
+  it('shows only approval as in progress, with review optional, while in review', () => {
     const request = walk(draft(), [['submit', ANA, -60]]);
     expect(buildApprovalChain(request).map((step) => step.state)).toEqual([
       'done',
-      'current',
+      'optional',
       'current',
       'pending',
     ]);
@@ -59,7 +59,7 @@ describe('buildApprovalChain', () => {
       ['complete', CARLA, -20],
     ]);
     const chain = buildApprovalChain(request);
-    expect(chain.every((step) => step.state === 'done')).toBe(true);
+    expect(chain.map((step) => step.state)).toEqual(['done', 'skipped', 'done', 'done']);
     expect(chain[2].actor).toBe('Carla Mendes');
   });
 
@@ -203,5 +203,32 @@ describe('computeAnalytics', () => {
         { role: 'approver', actions: 1 },
       ]),
     );
+  });
+});
+
+describe('inbox stages and ownership', () => {
+  it('moves an approved request to the conclude stage for the approver', () => {
+    const approved = walk(draft({ id: 'ap' }), [
+      ['submit', ANA, -60],
+      ['approve', CARLA, -40],
+    ]);
+    const [task] = inboxTasks([approved], CARLA, FIXED_NOW);
+    expect(task).toMatchObject({ stage: 'conclude', actions: ['complete'] });
+  });
+
+  it('keeps in-review requests in the todo stage', () => {
+    const review = walk(draft({ id: 'rv' }), [['submit', ANA, -60]]);
+    expect(inboxTasks([review], CARLA, FIXED_NOW)[0].stage).toBe('todo');
+  });
+
+  it('does not let a requester submit someone else draft', () => {
+    const other = draft({ id: 'o', requester: 'Outra Pessoa' });
+    const result = applyTransition(other, 'submit', { actor: ANA, now: FIXED_NOW });
+    expect(result).toEqual({ ok: false, error: 'not_owner' });
+  });
+
+  it('lets an admin submit on behalf of the owner (explicit rule)', () => {
+    const admin: Actor = { name: 'Elisa Prado', role: 'admin' };
+    expect(applyTransition(draft({ id: 'x' }), 'submit', { actor: admin, now: FIXED_NOW }).ok).toBe(true);
   });
 });

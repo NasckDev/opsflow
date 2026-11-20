@@ -9,7 +9,7 @@
   <div class="layout">
     <section class="panel" aria-labelledby="matrix-title">
       <h2 id="matrix-title" class="panel-title">{{ 'admin.matrix' | t }}</h2>
-      <div class="scroll">
+      <div class="scroll" tabindex="0" role="region" [attr.aria-label]="'admin.matrix' | t">
         <table class="matrix" data-testid="rbac-matrix">
           <caption class="visually-hidden">{{ 'admin.matrix' | t }}</caption>
           <thead>
@@ -42,6 +42,23 @@
           </tbody>
         </table>
       </div>
+      <ul class="role-cards" [attr.aria-label]="'admin.matrix' | t">
+        @for (role of roles; track role) {
+          <li class="role-card" [class.current]="role === session.currentRole()">
+            <p class="role-name"><strong>{{ 'role.' + role | t }}</strong>@if (role === session.currentRole()) {<span class="chip chip-plain" data-status="approved">{{ 'admin.current' | t }}</span>}</p>
+            <ul class="granted">
+              @for (permission of permissions; track permission) {
+                @if (allowed(role, permission)) {
+                  <li><app-icon name="check" [size]="1" />{{ 'perm.' + permission | t }}</li>
+                }
+              }
+              @if (!hasAny(role)) {
+                <li class="none">{{ 'admin.noPermissions' | t }}</li>
+              }
+            </ul>
+          </li>
+        }
+      </ul>
       <p class="hint">{{ 'admin.matrixHint' | t }}</p>
     </section>
 

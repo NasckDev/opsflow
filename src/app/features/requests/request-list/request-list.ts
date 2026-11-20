@@ -28,6 +28,7 @@ import { Icon } from '../../../shared/icon';
 import { SortKey, SortState, countByStatus, nextSort, sortRequests } from './request-sort';
 
 export const SEARCH_DEBOUNCE_MS = 300;
+const CARD_PAGE_SIZE = 15;
 const SKELETON_ROWS = [0, 1, 2, 3, 4, 5] as const;
 
 export type ListState =
@@ -81,6 +82,8 @@ export class RequestList {
 
   protected readonly status = signal<RequestStatus | ''>('');
   protected readonly sort = signal<SortState | null>(null);
+  /** No celular a lista de cartões vem aos poucos ( "mostrar mais" ), não em 8 mil pixels. */
+  protected readonly cardLimit = signal(CARD_PAGE_SIZE);
   private readonly reloads = signal(0);
 
   /** A API é consultada só pelo termo: os contadores por status precisam do conjunto completo. */
@@ -101,6 +104,9 @@ export class RequestList {
     return sortRequests(filtered, this.sort());
   });
 
+  protected readonly cards = computed(() => this.visible().slice(0, this.cardLimit()));
+  protected readonly moreCards = computed(() => Math.max(0, this.visible().length - this.cardLimit()));
+
   protected readonly hasFilters = computed(
     () => this.status() !== '' || this.search.query() !== '',
   );
@@ -109,7 +115,12 @@ export class RequestList {
     this.search.set((event.target as HTMLInputElement).value);
   }
 
+  protected showMore(): void {
+    this.cardLimit.update((limit) => limit + CARD_PAGE_SIZE);
+  }
+
   protected setStatus(status: RequestStatus | ''): void {
+    this.cardLimit.set(CARD_PAGE_SIZE);
     this.status.set(status);
   }
 
@@ -176,7 +187,8 @@ export class RequestList {
       map((value) => value.trim()),
       distinctUntilChanged(),
     );
-    return combineLatest([query$, toObservable(this.reloads)]).pipe(
+    // Trocar de papel muda o que o servidor devolve (visibilidade e auditoria): busca de novo.
+    return combineLatest([query$, toObservable(this.reloads), toObservable(this.session.currentRole)]).pipe(
       switchMap(([query]) => this.fetch(query)),
     );
   }

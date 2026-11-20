@@ -406,3 +406,9 @@ blockquote {
 .field-error:empty {
   display: none;
 }
+
+@media (max-width: 959px) {
+  .crumbs a {
+    min-height: var(--ox-tap);
+  }
+}

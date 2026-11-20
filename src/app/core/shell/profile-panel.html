@@ -17,12 +17,6 @@
     </button>
   </header>
 
-  <nav class="group mobile-only" [attr.aria-label]="'app.nav.more' | t">
-    <h2 class="legend">{{ 'app.nav.more' | t }}</h2>
-    <a class="more-link" routerLink="/board" (click)="close()"><app-icon name="board" />{{ 'app.nav.board' | t }}</a>
-    <a class="more-link" routerLink="/admin" (click)="close()"><app-icon name="shield" />{{ 'app.nav.admin' | t }}</a>
-  </nav>
-
   <fieldset class="group">
     <legend>{{ 'app.profile.role' | t }}</legend>
     <p class="hint">{{ 'app.profile.roleHint' | t }}</p>

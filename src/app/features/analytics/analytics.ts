@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { TranslationService } from '../../core/i18n/translation.service';
 import { RequestsStore } from '../../core/requests/requests.store';
+import { SessionStore } from '../../core/session/session.store';
 import { NowService } from '../../core/time/now.service';
 import { computeAnalytics } from '../../domain/analytics';
 import { formatHours } from '../../domain/sla';
@@ -25,6 +26,10 @@ export class Analytics {
   private readonly store = inject(RequestsStore);
   private readonly i18n = inject(TranslationService);
   private readonly clock = inject(NowService);
+  private readonly session = inject(SessionStore);
+
+  /** Os gráficos nascem da trilha de auditoria: sem `audit.view` o servidor não a entrega. */
+  protected readonly locked = computed(() => !this.session.can('audit.view'));
 
   protected readonly status = this.store.status;
   protected readonly skeletons = SKELETONS;

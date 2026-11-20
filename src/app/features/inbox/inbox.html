@@ -3,19 +3,32 @@
     <div class="titles">
       <h1 id="inbox-title" tabindex="-1">{{ 'inbox.title' | t }}</h1>
       <p class="muted">
-        {{ 'inbox.subtitle' | t: { role: 'role.' + role() | t, count: allTasks().length } }}
+        {{ 'inbox.subtitle' | t: { role: 'role.' + role() | t, count: todoCount() } }}
       </p>
     </div>
-    <button type="button" class="btn btn-ghost help-btn" (click)="retry()" [attr.aria-label]="'list.retry' | t">
-      <app-icon name="refresh" />
+    <button type="button" class="btn refresh" (click)="retry()">
+      <app-icon name="refresh" />{{ 'inbox.refresh' | t }}
     </button>
   </header>
+
+  @if (hintVisible()) {
+    <p class="orient" role="note">
+      <app-icon name="info" />
+      <span>{{ 'inbox.orient' | t }}</span>
+      <button type="button" class="orient-close" (click)="dismissHint()" [attr.aria-label]="'inbox.orient.dismiss' | t">
+        <app-icon name="x" [size]="1" />
+      </button>
+    </p>
+  }
 
   <div class="toolbar">
     <div class="chips" role="group" [attr.aria-label]="'inbox.filters' | t">
       @for (preset of presets; track preset.id) {
         <button type="button" class="filter" [attr.aria-pressed]="isActive(preset.filter)" (click)="applyFilter(preset.filter)">
           {{ preset.label | t }}
+          @if (preset.id === 'conclude' && toConclude() > 0) {
+            <span class="count">{{ toConclude() }}</span>
+          }
         </button>
       }
       @for (item of saved(); track item.id) {
@@ -63,7 +76,24 @@
     </div>
   </div>
 
-  <div aria-live="polite" class="results">
+  @if (batchResult(); as result) {
+    <div class="batch-result card" role="status">
+      <p class="result-line">
+        <app-icon [name]="result.skipped.length ? 'info' : 'checkCircle'" />
+        {{ 'inbox.batchSummary' | t: { approved: result.approved, skipped: result.skipped.length, remaining: todoCount() } }}
+      </p>
+      @if (result.skipped.length) {
+        <ul class="skipped">
+          @for (item of result.skipped; track item.code) {
+            <li><span class="mono">{{ item.code }}</span> {{ 'inbox.skippedReason.' + item.reason | t }}</li>
+          }
+        </ul>
+      }
+      <button type="button" class="btn btn-ghost" (click)="dismissBatchResult()">{{ 'app.close' | t }}</button>
+    </div>
+  }
+
+  <div class="results">
     @switch (status()) {
       @case ('error') {
         <div class="state state-error" role="alert">
@@ -84,26 +114,29 @@
               <circle cx="84" cy="64" r="14" fill="var(--ox-card)" />
               <path d="m77 64 5 5 9-10" stroke="var(--ox-color-success)" stroke-width="3" />
             </svg>
-            <h2>{{ (allTasks().length ? 'list.empty.title' : 'inbox.empty.title') | t }}</h2>
-            <p>{{ (allTasks().length ? 'list.empty.hint' : 'inbox.empty.hint') | t }}</p>
-            @if (allTasks().length) {
+            <h2>{{ (everything().length ? 'list.empty.title' : 'inbox.empty.title') | t }}</h2>
+            <p>{{ (everything().length ? 'list.empty.hint' : 'inbox.empty.hint') | t }}</p>
+            @if (!isActive(presets[0].filter)) {
               <button type="button" class="btn" (click)="applyFilter(presets[0].filter)">{{ 'list.clear' | t }}</button>
             }
           </div>
         } @else {
           <div class="list-head">
-            <label class="check">
-              <input type="checkbox" [checked]="selected().size > 0 && selected().size === batchable().length" (change)="toggleAll($any($event.target).checked)" />
-              {{ 'inbox.selectAll' | t }}
-            </label>
+            <button type="button" class="select-all" [attr.aria-pressed]="allSelected()" (click)="toggleAll(!allSelected())">
+              <app-icon [name]="allSelected() ? 'checkCircle' : 'circle'" [size]="1.125" />{{ 'inbox.selectAll' | t }}
+            </button>
             <span class="muted" role="status">{{ 'inbox.count' | t: { count: tasks().length } }}</span>
             <span class="hints muted"><kbd>j</kbd><kbd>k</kbd> {{ 'inbox.hintMove' | t }} · <kbd>a</kbd> {{ 'action.approve' | t }} · <kbd>r</kbd> {{ 'inbox.hintReject' | t }}</span>
           </div>
           <ul class="tasks" data-testid="inbox-list">
             @for (task of tasks(); track task.request.id; let i = $index) {
-              <li class="task card" [id]="'task-' + task.request.id" [class.focused]="i === focusIndex()" [class.selected]="selected().has(task.request.id)" [attr.data-sla]="task.sla.state">
+              <li class="task card" [id]="'task-' + task.request.id" [class.focused]="keyboardMode() && task.request.id === activeId()" [class.selected]="selected().has(task.request.id)" [attr.data-sla]="task.sla.state" [attr.aria-current]="keyboardMode() && task.request.id === activeId() ? 'true' : null">
                 <div class="pick">
-                  <input type="checkbox" [checked]="selected().has(task.request.id)" [disabled]="!isBatchable(task)" [attr.title]="isBatchable(task) ? null : ('inbox.needsReview' | t)" (change)="toggle(task.request.id)" [attr.aria-label]="('inbox.select' | t) + ' ' + task.request.code" />
+                  @if (isBatchable(task)) {
+                    <label class="pick-box">
+                      <input type="checkbox" [checked]="selected().has(task.request.id)" (change)="toggle(task.request.id)" [attr.aria-label]="('inbox.select' | t) + ' ' + task.request.code" />
+                    </label>
+                  }
                 </div>
                 <div class="body">
                   <p class="line1">
@@ -111,12 +144,15 @@
                     <app-status-badge [status]="task.request.status" />
                     <app-priority [priority]="task.request.priority" />
                   </p>
-                  <a class="title" [routerLink]="['/requests', task.request.id]">{{ task.request.title }}</a>
+                  <a class="title" [id]="'open-' + task.request.id" [routerLink]="['/requests', task.request.id]" [attr.tabindex]="task.request.id === activeId() ? 0 : -1">{{ task.request.title }}</a>
                   <p class="line3 muted">
                     <span class="person"><app-avatar [name]="task.request.requester" size="sm" />{{ task.request.requester }}</span>
                     <span class="num">{{ task.request.amount | money }}</span>
                     <span>{{ 'category.' + task.request.category | t }}</span>
                   </p>
+                  @if (needsJustification(task)) {
+                    <p class="needs"><app-icon name="alert" [size]="0.875" />{{ 'inbox.needsJustification' | t }}</p>
+                  }
                 </div>
                 <div class="side">
                   <app-countdown [request]="task.request" />
@@ -124,7 +160,7 @@
                 </div>
                 <div class="acts">
                   @for (action of task.actions; track action) {
-                    <button type="button" class="btn {{ buttonClass(action) }}" [disabled]="busy()" (click)="act(task, action)">
+                    <button type="button" class="btn {{ buttonClass[action] }}" (click)="act(task, action)">
                       <app-icon [name]="actionIcons[action]" />{{ 'action.' + action | t }}
                     </button>
                   }
@@ -149,13 +185,27 @@
     }
   </div>
 
-  @if (selected().size > 0) {
+  @if (selected().size > 0 || batch()) {
     <div class="batch-bar" role="region" [attr.aria-label]="'inbox.batch' | t">
-      <span>{{ 'inbox.selected' | t: { count: selected().size } }}</span>
-      <button type="button" class="btn btn-ghost" (click)="clearSelection()">{{ 'inbox.clear' | t }}</button>
-      <button type="button" class="btn btn-success" [disabled]="busy() || batchable().length === 0" (click)="approveSelected()">
-        <app-icon name="checkAll" />{{ 'inbox.approveSelected' | t: { count: batchable().length } }}
-      </button>
+      @if (batch(); as progress) {
+        <div class="progress" role="status">
+          <span>{{ 'inbox.batchProgress' | t: { done: progress.done, total: progress.total } }}</span>
+          <span class="bar" role="progressbar" [attr.aria-valuenow]="progress.done" aria-valuemin="0" [attr.aria-valuemax]="progress.total" [attr.aria-label]="'inbox.batch' | t">
+            <span class="fill" [style.width.%]="(progress.done / progress.total) * 100"></span>
+          </span>
+        </div>
+      } @else {
+        <div class="summary">
+          <span>{{ 'inbox.selected' | t: { count: selected().size } }}</span>
+          @if (willSkip() > 0) {
+            <small class="muted">{{ 'inbox.willSkip' | t: { count: willSkip() } }}</small>
+          }
+        </div>
+        <button type="button" class="btn btn-ghost clear" (click)="clearSelection()">{{ 'inbox.clear' | t }}</button>
+        <button type="button" class="btn btn-success approve" [disabled]="eligible().length === 0" (click)="approveSelected()">
+          <app-icon name="checkAll" />{{ 'inbox.approveSelected' | t: { count: eligible().length } }}
+        </button>
+      }
     </div>
   }
 </section>

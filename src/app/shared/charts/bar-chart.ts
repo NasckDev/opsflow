@@ -55,7 +55,7 @@ interface Bar {
     }
     text {
       font-family: var(--ox-font-family-sans);
-      font-size: 11px;
+      font-size: 12px;
       fill: var(--ox-color-text-muted);
     }
     .bar {

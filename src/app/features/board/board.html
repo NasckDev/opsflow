@@ -16,10 +16,18 @@
       </div>
     }
     @case ('loaded') {
+      <div class="column-tabs" role="group" [attr.aria-label]="'board.columns' | t">
+        @for (column of columns(); track column.status) {
+          <button type="button" class="tab-chip" [attr.data-status]="column.status" [attr.aria-pressed]="mobileColumn() === column.status" (click)="mobileColumn.set(column.status)">
+            {{ 'status.' + column.status | t }}<span class="count num">{{ column.items.length }}</span>
+          </button>
+        }
+      </div>
       <div class="board" cdkDropListGroup data-testid="board">
         @for (column of columns(); track column.status) {
           <section
             class="column"
+            [class.off]="column.status !== mobileColumn()"
             [attr.data-status]="column.status"
             [class.accepts]="accepts(column.status) === true"
             [class.rejects]="accepts(column.status) === false"

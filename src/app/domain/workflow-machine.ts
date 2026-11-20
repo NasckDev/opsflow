@@ -58,6 +58,7 @@ export type TransitionError =
   | 'invalid_transition'
   | 'forbidden'
   | 'separation_of_duties'
+  | 'not_owner'
   | 'comment_required'
   | 'justification_required';
 
@@ -69,6 +70,15 @@ export interface TransitionContext {
 
 /** Ações que não podem ser executadas por quem criou a solicitação. */
 const SEGREGATED_ACTIONS: readonly WorkflowAction[] = ['return', 'approve', 'reject'];
+
+/** Enviar e reenviar é do dono da solicitação; o administrador pode agir em nome dele (regra explícita). */
+const OWNER_ACTIONS: readonly WorkflowAction[] = ['submit', 'resubmit'];
+
+function violatesOwnership(request: WorkflowRequest, action: WorkflowAction, actor: Actor): boolean {
+  return (
+    OWNER_ACTIONS.includes(action) && request.requester !== actor.name && actor.role !== 'admin'
+  );
+}
 
 function hasComment(comment: string | undefined): boolean {
   return (comment?.trim().length ?? 0) > 0;
@@ -82,8 +92,8 @@ function violatesSegregation(
   return SEGREGATED_ACTIONS.includes(action) && request.requester === actor.name;
 }
 
-/** Guardas de papel, estado e segregação — sem considerar comentário. */
-function checkAccess(
+/** Guardas de papel, estado, dono e segregação, sem considerar comentário. */
+export function accessError(
   request: WorkflowRequest,
   action: WorkflowAction,
   actor: Actor,
@@ -91,6 +101,7 @@ function checkAccess(
   const definition = TRANSITIONS[action];
   if (!definition.from.includes(request.status)) return 'invalid_transition';
   if (!can(actor.role, definition.permission)) return 'forbidden';
+  if (violatesOwnership(request, action, actor)) return 'not_owner';
   if (violatesSegregation(request, action, actor)) return 'separation_of_duties';
   return null;
 }
@@ -110,8 +121,8 @@ export function checkTransition(
   action: WorkflowAction,
   context: TransitionContext,
 ): TransitionError | null {
-  const accessError = checkAccess(request, action, context.actor);
-  if (accessError) return accessError;
+  const blocked = accessError(request, action, context.actor);
+  if (blocked) return blocked;
   if (hasComment(context.comment)) return null;
   if (TRANSITIONS[action].commentRequired) return 'comment_required';
   if (requiresComment(request, action, context.now)) return 'justification_required';
@@ -119,7 +130,7 @@ export function checkTransition(
 }
 
 export function availableActions(request: WorkflowRequest, actor: Actor): WorkflowAction[] {
-  return WORKFLOW_ACTIONS.filter((action) => checkAccess(request, action, actor) === null);
+  return WORKFLOW_ACTIONS.filter((action) => accessError(request, action, actor) === null);
 }
 
 export function applyTransition(

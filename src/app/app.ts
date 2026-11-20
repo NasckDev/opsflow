@@ -6,12 +6,13 @@ import { TranslatePipe } from './core/i18n/translate.pipe';
 import { RequestsStore } from './core/requests/requests.store';
 import { SearchStore } from './core/search/search.store';
 import { SessionStore } from './core/session/session.store';
+import { MorePanel } from './core/shell/more-panel';
 import { NotificationPanel } from './core/shell/notification-panel';
 import { Popover } from './core/shell/popover';
 import { ProfilePanel } from './core/shell/profile-panel';
 import { Shortcuts } from './core/ui/shortcuts.service';
 import { Toasts } from './core/ui/toasts';
-import { inboxTasks } from './domain/inbox';
+import { inboxTasks, todoTasks } from './domain/inbox';
 import { buildNotifications } from './domain/notifications';
 import { Avatar } from './shared/avatar';
 import { Icon } from './shared/icon';
@@ -53,8 +54,22 @@ export class App {
 
   protected readonly section = computed(() => sectionOf(this.url()));
 
+  /** Pendências de decisão ou envio: cai na hora quando uma decisão é aplicada. */
   protected readonly inboxCount = computed(
-    () => inboxTasks(this.store.requests(), this.session.actor(), new Date()).length,
+    () => todoTasks(inboxTasks(this.store.requests(), this.session.actor(), new Date())).length,
+  );
+
+  /** Solicitante troca "Quadro" por "Nova" na barra inferior: é o que ele mais faz. */
+  protected readonly requesterTab = computed(
+    () => this.session.currentRole() === 'requester' && this.session.can('request.create'),
+  );
+
+  protected readonly moreActive = computed(
+    () =>
+      this.popover.openKey() === 'more' ||
+      this.popover.openKey() === 'profile' ||
+      ['analytics', 'admin'].includes(this.section()) ||
+      (!this.requesterTab() ? this.section() === 'new' : this.section() === 'board'),
   );
 
   protected readonly notificationCount = computed(
@@ -77,6 +92,10 @@ export class App {
 
   protected toggleProfile(event: Event): void {
     this.popover.toggle(event.currentTarget as HTMLElement, 'profile', ProfilePanel);
+  }
+
+  protected toggleMore(event: Event): void {
+    this.popover.toggle(event.currentTarget as HTMLElement, 'more', MorePanel);
   }
 
   protected toggleNotifications(event: Event): void {

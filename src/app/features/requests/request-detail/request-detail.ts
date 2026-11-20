@@ -1,12 +1,13 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   inject,
   input,
   signal,
 } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Observable, catchError, combineLatest, map, of, startWith, switchMap, tap } from 'rxjs';
 import { RequestsApi, apiErrorCode } from '../../../core/api/requests.api';
@@ -19,40 +20,25 @@ import { SessionStore } from '../../../core/session/session.store';
 import { ToastService } from '../../../core/ui/toast.service';
 import { buildApprovalChain } from '../../../domain/approval-chain';
 import { RequestComment, validateCommentBody } from '../../../domain/comments';
-import { AuditAction, WorkflowAction, WorkflowRequest } from '../../../domain/request.model';
+import { WorkflowAction, WorkflowRequest } from '../../../domain/request.model';
 import { availableActions } from '../../../domain/workflow-machine';
+import { ACTION_BUTTON_CLASS, ACTION_ICONS } from '../../../shared/action-meta';
 import { ApprovalChain } from '../../../shared/approval-chain';
 import { Avatar } from '../../../shared/avatar';
 import { PriorityBadge, SlaMeter, StatusBadge } from '../../../shared/badges';
-import { Icon, IconName } from '../../../shared/icon';
+import { Icon } from '../../../shared/icon';
 
 type DetailState =
   | { readonly kind: 'loading' }
   | { readonly kind: 'not_found' }
+  | { readonly kind: 'forbidden' }
   | { readonly kind: 'error' }
   | { readonly kind: 'loaded'; readonly request: WorkflowRequest };
 
 const LOADING: DetailState = { kind: 'loading' };
 
-export const ACTION_ICONS: Readonly<Record<AuditAction, IconName>> = {
-  create: 'plusCircle',
-  migrate: 'history',
-  submit: 'send',
-  resubmit: 'send',
-  return: 'undo',
-  approve: 'checkCircle',
-  reject: 'xCircle',
-  complete: 'check',
-};
-
-const BUTTON_CLASSES: Readonly<Record<WorkflowAction, string>> = {
-  submit: 'btn-primary',
-  resubmit: 'btn-primary',
-  complete: 'btn-primary',
-  approve: 'btn-success',
-  reject: 'btn-danger',
-  return: '',
-};
+/** Estados em que ainda dá para anexar arquivos (regra do servidor). */
+const ATTACHABLE_STATUSES: readonly WorkflowRequest['status'][] = ['draft', 'returned'];
 
 @Component({
   selector: 'app-request-detail',
@@ -78,14 +64,13 @@ export class RequestDetail {
   private readonly transitions = inject(TransitionService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(TranslationService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly session = inject(SessionStore);
 
   /** Vem do parâmetro de rota `:id` (withComponentInputBinding). */
   readonly id = input.required<string>();
 
   private readonly reloads = signal(0);
-  /** Versão atualizada após uma transição ou anexo, sem recarregar. */
-  private readonly updated = signal<WorkflowRequest | null>(null);
   private readonly loaded = toSignal(this.loadRequest(), { initialValue: LOADING });
   private readonly fetchedComments = toSignal(this.loadComments(), {
     initialValue: [] as readonly RequestComment[],
@@ -93,15 +78,21 @@ export class RequestDetail {
   private readonly posted = signal<readonly RequestComment[]>([]);
 
   protected readonly actionIcons = ACTION_ICONS;
+  protected readonly buttonClass = ACTION_BUTTON_CLASS;
   protected readonly busy = signal(false);
   protected readonly draftComment = signal('');
   protected readonly commentError = signal<string | null>(null);
   protected readonly posting = signal(false);
 
+  /**
+   * A versão do cache compartilhado manda quando existe: toda ação (inclusive o
+   * desfazer) passa por ele, então o detalhe nunca fica atrás do resto do app.
+   */
   protected readonly state = computed<DetailState>(() => {
-    const fresh = this.updated();
     const current = this.loaded();
-    return fresh && current.kind === 'loaded' ? { kind: 'loaded', request: fresh } : current;
+    if (current.kind !== 'loaded') return current;
+    const shared = this.store.requests().find((item) => item.id === current.request.id);
+    return { kind: 'loaded', request: shared ?? current.request };
   });
 
   protected readonly actions = computed<WorkflowAction[]>(() => {
@@ -115,10 +106,16 @@ export class RequestDetail {
   });
 
   protected readonly thread = computed(() => [...this.fetchedComments(), ...this.posted()]);
-  protected readonly canAttach = computed(() => this.session.currentRole() !== 'auditor');
 
-  protected buttonClass(action: WorkflowAction): string {
-    return BUTTON_CLASSES[action];
+  /** Anexar só enquanto é editável (rascunho ou devolvida) e só para o dono ou o administrador. */
+  protected canAttach(request: WorkflowRequest): boolean {
+    const actor = this.session.actor();
+    const isOwner = request.requester === actor.name;
+    return (
+      ATTACHABLE_STATUSES.includes(request.status) &&
+      actor.role !== 'auditor' &&
+      (isOwner || actor.role === 'admin')
+    );
   }
 
   protected retry(): void {
@@ -129,8 +126,8 @@ export class RequestDetail {
     if (this.busy()) return;
     this.busy.set(true);
     try {
-      const outcome = await this.transitions.act(request, action);
-      if (outcome.request) this.updated.set(outcome.request);
+      const outcome = await this.transitions.act(request, action, { undoable: true });
+      if (outcome.error === 'conflict' || outcome.error === 'not_found') this.retry();
     } finally {
       this.busy.set(false);
     }
@@ -149,7 +146,8 @@ export class RequestDetail {
     }
     this.posting.set(true);
     this.api
-      .addComment(request.id, { actor: this.session.actor(), body: this.draftComment() })
+      .addComment(request.id, { body: this.draftComment() })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (comment) => {
           this.posted.update((current) => [...current, comment]);
@@ -164,41 +162,53 @@ export class RequestDetail {
   }
 
   protected onFiles(request: WorkflowRequest, event: Event): void {
-    const input = event.target as HTMLInputElement;
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
     const names = Array.from(input.files ?? []).map((file) => file.name);
     input.value = '';
     names.forEach((name) => this.attach(request.id, name));
   }
 
   private attach(requestId: string, name: string): void {
-    this.api.addDocument(requestId, { name }).subscribe({
-      next: (request) => {
-        this.updated.set(request);
-        this.store.upsert(request);
-        this.toast.show(this.i18n.translateDynamic('detail.attached', { name }), 'success');
-      },
-      error: (failure: unknown) =>
-        this.toast.show(this.i18n.translateDynamic(`error.${apiErrorCode(failure)}`), 'error'),
-    });
+    this.api
+      .addDocument(requestId, { name })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (request) => {
+          this.store.upsert(request);
+          this.toast.show(this.i18n.translateDynamic('detail.attached', { name }), 'success');
+        },
+        error: (failure: unknown) =>
+          this.toast.show(this.i18n.translateDynamic(`error.${apiErrorCode(failure)}`), 'error'),
+      });
   }
 
   private loadRequest(): Observable<DetailState> {
-    return combineLatest([toObservable(this.id), toObservable(this.reloads)]).pipe(
-      switchMap(([id]) => {
-        this.updated.set(null);
-        return this.api.get(id).pipe(
+    return combineLatest([
+      toObservable(this.id),
+      toObservable(this.reloads),
+      toObservable(this.session.currentRole),
+    ]).pipe(
+      switchMap(([id]) =>
+        this.api.get(id).pipe(
           map((request): DetailState => ({ kind: 'loaded', request })),
           startWith(LOADING),
-          catchError((error: unknown) =>
-            of<DetailState>({ kind: apiErrorCode(error) === 'not_found' ? 'not_found' : 'error' }),
-          ),
-        );
-      }),
+          catchError((error: unknown) => {
+            const code = apiErrorCode(error);
+            const kind = code === 'not_found' || code === 'forbidden' ? code : 'error';
+            return of<DetailState>({ kind });
+          }),
+        ),
+      ),
     );
   }
 
   private loadComments(): Observable<readonly RequestComment[]> {
-    return combineLatest([toObservable(this.id), toObservable(this.reloads)]).pipe(
+    return combineLatest([
+      toObservable(this.id),
+      toObservable(this.reloads),
+      toObservable(this.session.currentRole),
+    ]).pipe(
       tap(() => this.posted.set([])),
       switchMap(([id]) =>
         this.api.comments(id).pipe(catchError(() => of<readonly RequestComment[]>([]))),

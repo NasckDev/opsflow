@@ -15,9 +15,10 @@
 }
 
 .column {
+  min-width: 0;
   --swatch: var(--ox-color-text-muted);
-  flex: 1 0 min(12.75rem, 82vw);
-  max-width: 20rem;
+  flex: 1 0 11rem;
+  max-width: 18rem;
   display: grid;
   gap: var(--ox-space-2);
   padding: var(--ox-space-2);
@@ -103,6 +104,7 @@ header {
 }
 
 .card-item {
+  min-width: 0;
   display: grid;
   gap: var(--ox-space-2);
   padding: var(--ox-space-3);
@@ -132,6 +134,7 @@ header {
 }
 
 .foot {
+  flex-wrap: wrap;
   font-size: var(--ox-font-size-xs);
 }
 
@@ -198,4 +201,64 @@ header {
 .sk-card {
   height: 5.5rem;
   border-radius: var(--ox-radius-md);
+}
+
+.column-tabs {
+  display: flex;
+  gap: var(--ox-space-2);
+  margin-bottom: var(--ox-space-3);
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: relative;
+}
+
+.tab-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ox-space-2);
+  flex: none;
+  min-height: var(--ox-tap);
+  padding: 0 var(--ox-space-3);
+  font-weight: var(--ox-font-weight-medium);
+  color: var(--ox-color-text-muted);
+  background: var(--ox-card);
+  border: 1px solid var(--ox-color-border);
+  border-radius: var(--ox-radius-full);
+  cursor: pointer;
+
+  &[aria-pressed='true'] {
+    color: var(--ox-color-accent-text);
+    background: var(--ox-color-accent-surface);
+    border-color: color-mix(in srgb, var(--ox-color-accent) 50%, transparent);
+  }
+}
+
+.title {
+  display: inline-block;
+
+  @media (max-width: 959px) {
+    min-height: var(--ox-tap);
+    padding-top: 0.5rem;
+  }
+}
+
+@media (max-width: 959px) {
+  .board {
+    display: block;
+    overflow: visible;
+  }
+
+  .column {
+    max-width: none;
+  }
+
+  .column.off {
+    display: none;
+  }
+}
+
+@media (min-width: 960px) {
+  .column-tabs {
+    display: none;
+  }
 }

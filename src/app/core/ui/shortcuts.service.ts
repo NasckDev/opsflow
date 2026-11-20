@@ -3,9 +3,8 @@ import { DOCUMENT } from '@angular/common';
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslationService } from '../i18n/translation.service';
+import { Popover } from '../shell/popover';
 import { Observable } from 'rxjs';
-import { CommandPalette } from './command-palette';
-import { ShortcutsDialog } from './shortcuts-dialog';
 
 interface OpenDialog {
   close(): void;
@@ -34,6 +33,7 @@ export class Shortcuts {
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
   private readonly i18n = inject(TranslationService);
+  private readonly popover = inject(Popover);
   private active: OpenDialog | null = null;
   private awaitingSecondKey = false;
   private sequenceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -42,27 +42,32 @@ export class Shortcuts {
     this.document.addEventListener('keydown', (event) => this.onKeydown(event));
   }
 
+  /** A paleta é carregada só quando alguém a abre: fora do bundle inicial. */
   openPalette(): void {
-    this.openOnce(() =>
-      this.dialog.open(CommandPalette, {
-        ariaModal: true,
-        ariaLabel: this.i18n.translateDynamic('palette.title'),
-        panelClass: 'ox-dialog-panel',
-        backdropClass: 'ox-dialog-backdrop',
-        autoFocus: false,
-      }),
+    void import('./command-palette').then(({ CommandPalette }) =>
+      this.openOnce(() =>
+        this.dialog.open(CommandPalette, {
+          ariaModal: true,
+          ariaLabel: this.i18n.translateDynamic('palette.title'),
+          panelClass: 'ox-dialog-panel',
+          backdropClass: 'ox-dialog-backdrop',
+          autoFocus: false,
+        }),
+      ),
     );
   }
 
   openHelp(): void {
-    this.openOnce(() =>
-      this.dialog.open(ShortcutsDialog, {
-        ariaModal: true,
-        ariaLabelledBy: 'shortcuts-title',
-        panelClass: 'ox-dialog-panel',
-        backdropClass: 'ox-dialog-backdrop',
-        autoFocus: false,
-      }),
+    void import('./shortcuts-dialog').then(({ ShortcutsDialog }) =>
+      this.openOnce(() =>
+        this.dialog.open(ShortcutsDialog, {
+          ariaModal: true,
+          ariaLabelledBy: 'shortcuts-title',
+          panelClass: 'ox-dialog-panel',
+          backdropClass: 'ox-dialog-backdrop',
+          autoFocus: false,
+        }),
+      ),
     );
   }
 
@@ -81,6 +86,7 @@ export class Shortcuts {
     }
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (isTypingTarget(event.target) || this.dialog.openDialogs.length > 0) return;
+    if (this.popover.openKey() !== null) return;
     if (this.awaitingSecondKey) {
       this.finishSequence();
       const route = GO_ROUTES[event.key.toLowerCase()];

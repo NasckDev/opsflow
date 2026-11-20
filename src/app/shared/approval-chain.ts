@@ -7,7 +7,9 @@ import { Icon, IconName } from './icon';
 const STATE_ICONS: Readonly<Record<ChainStepState, IconName>> = {
   done: 'check',
   current: 'clock',
-  pending: 'ban',
+  pending: 'circle',
+  optional: 'circle',
+  skipped: 'minus',
   rejected: 'x',
   returned: 'undo',
 };
@@ -91,10 +93,58 @@ const STATE_ICONS: Readonly<Record<ChainStepState, IconName>> = {
       color: var(--ox-color-text-muted);
       font-size: var(--ox-font-size-xs);
     }
+    li[data-state='pending'],
+    li[data-state='optional'],
+    li[data-state='skipped'] {
+      --tone: var(--ox-color-step-idle);
+    }
     .step-state {
       font-size: var(--ox-font-size-xs);
       font-weight: var(--ox-font-weight-semibold);
       color: var(--tone);
+    }
+    .hint {
+      font-size: var(--ox-font-size-2xs);
+      color: var(--ox-color-text-muted);
+    }
+    @media (max-width: 639px) {
+      ol {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+      li {
+        grid-template-columns: 2.375rem minmax(0, 1fr);
+        justify-items: start;
+        align-items: start;
+        column-gap: var(--ox-space-3);
+        padding: 0 0 var(--ox-space-4);
+        text-align: left;
+      }
+      li::before {
+        display: none;
+      }
+      li:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 1.1875rem;
+        top: 2.5rem;
+        bottom: 0.125rem;
+        width: 2px;
+        background: var(--ox-color-border);
+      }
+      li[data-state='done']:not(:last-child)::after {
+        background: var(--ox-color-success);
+      }
+      .node {
+        grid-row: 1 / span 4;
+      }
+      .name {
+        grid-column: 2;
+      }
+      .step-state,
+      small {
+        grid-column: 2;
+      }
     }
     @keyframes pulse {
       50% {
@@ -109,7 +159,9 @@ const STATE_ICONS: Readonly<Record<ChainStepState, IconName>> = {
           <span class="node"><app-icon [name]="icon(step.state)" [size]="1" /></span>
           <span class="name">{{ 'chain.' + step.id | t }}</span>
           <span class="step-state">{{ 'chain.state.' + step.state | t }}</span>
-          @if (step.actor) {
+          @if (step.state === 'optional') {
+            <small class="hint">{{ 'chain.optionalHint' | t }}</small>
+          } @else if (step.actor) {
             <small>{{ step.actor }}</small>
           } @else {
             <small>{{ 'role.' + step.role | t }}</small>

@@ -31,7 +31,7 @@ import { Icon } from '../icon';
       justify-content: space-between;
       gap: var(--ox-space-3);
     }
-    h3 {
+    h2 {
       margin: 0;
       font-size: var(--ox-font-size-sm);
       font-weight: var(--ox-font-weight-semibold);
@@ -66,7 +66,7 @@ import { Icon } from '../icon';
     @media (max-width: 959px) {
       .toggle button {
         width: var(--ox-tap);
-        height: 2.25rem;
+        height: var(--ox-tap);
       }
     }
   `,
@@ -74,7 +74,7 @@ import { Icon } from '../icon';
     <figure>
       <header>
         <div>
-          <h3>{{ heading() }}</h3>
+          <h2>{{ heading() }}</h2>
           <p>{{ caption() }}</p>
         </div>
         <div class="toggle" role="group" [attr.aria-label]="'analytics.view' | t">

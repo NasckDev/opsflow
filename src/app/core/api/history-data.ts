@@ -149,7 +149,7 @@ export function generateHistory(): SeedSpec[] {
     const outcome = pick(OUTCOMES);
     const open = outcome === 'in_review' || outcome === 'returned' || outcome === 'draft';
     const age = open
-      ? 10 + rand() * 60
+      ? 10 + rand() * 360
       : MIN_CLOSED_AGE + rand() * (MAX_AGE_DAYS * DAY_HOURS - MIN_CLOSED_AGE);
     const window = DAY_HOURS * (1 + Math.floor(rand() * 5));
     const owner = pick(POOL_REQUESTERS);
@@ -162,7 +162,8 @@ export function generateHistory(): SeedSpec[] {
       amount: Math.round((min + rand() * (max - min)) / 10) * 10,
       requester: owner,
       ageHours: age,
-      dueInHours: window - age,
+      // Em aberto: o prazo é daqui a pouco (ou acabou de passar), não relativo à idade.
+      dueInHours: open ? Math.round(rand() * 160 - 10) : window - age,
       documents: rand() > 0.5 ? ['orcamento.pdf'] : [],
       steps: historySteps(outcome, owner, age, rand, window),
     };

@@ -59,6 +59,8 @@ export class Board {
   protected readonly status = this.store.status;
   protected readonly skeletons = SKELETON_COLUMNS;
   protected readonly dragging = signal<WorkflowRequest | null>(null);
+  /** No celular só uma coluna aparece por vez, escolhida nas abas. */
+  protected readonly mobileColumn = signal<RequestStatus>('in_review');
 
   protected readonly columns = computed<Column[]>(() => {
     const requests = this.store.requests();
@@ -121,6 +123,6 @@ export class Board {
       this.toast.show(message, 'error');
       return;
     }
-    void this.transitions.act(request, action);
+    void this.transitions.act(request, action, { undoable: true });
   }
 }

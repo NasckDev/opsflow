@@ -1,5 +1,4 @@
 import { CdkTrapFocus } from '@angular/cdk/a11y';
-import { RouterLink } from '@angular/router';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ROLES, Role } from '../../domain/request.model';
 import { Avatar } from '../../shared/avatar';
@@ -14,7 +13,7 @@ import { Popover } from './popover';
 
 @Component({
   selector: 'app-profile-panel',
-  imports: [CdkTrapFocus, RouterLink, TranslatePipe, Avatar, Icon],
+  imports: [CdkTrapFocus, TranslatePipe, Avatar, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './profile-panel.html',
   styleUrl: './profile-panel.scss',

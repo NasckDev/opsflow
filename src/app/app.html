@@ -1,6 +1,6 @@
 <a class="skip-link" href="#main" (click)="focusMain($event, main)">{{ 'app.skip' | t }}</a>
 
-<div class="demo-banner" role="note">
+<div class="demo-banner" role="region" [attr.aria-label]="'app.demo' | t">
   <span class="demo-dot" aria-hidden="true"></span>
   <strong>{{ 'app.demo' | t }}</strong>
   <span class="demo-hint">{{ 'app.demoHint' | t }}</span>
@@ -30,9 +30,11 @@
       <a class="nav-item" routerLink="/board" [class.active]="section() === 'board'" [attr.aria-current]="section() === 'board' ? 'page' : null">
         <app-icon name="board" />{{ 'app.nav.board' | t }}
       </a>
-      <a class="nav-item" routerLink="/analytics" [class.active]="section() === 'analytics'" [attr.aria-current]="section() === 'analytics' ? 'page' : null">
-        <app-icon name="chart" />{{ 'app.nav.analytics' | t }}
-      </a>
+      @if (session.can('audit.view')) {
+        <a class="nav-item" routerLink="/analytics" [class.active]="section() === 'analytics'" [attr.aria-current]="section() === 'analytics' ? 'page' : null">
+          <app-icon name="chart" />{{ 'app.nav.analytics' | t }}
+        </a>
+      }
       <p class="nav-label second">{{ 'app.nav.manage' | t }}</p>
       <a class="nav-item" routerLink="/admin" [class.active]="section() === 'admin'" [attr.aria-current]="section() === 'admin' ? 'page' : null">
         <app-icon name="shield" />{{ 'app.nav.admin' | t }}
@@ -138,30 +140,31 @@
       </span>
       <span>{{ 'app.nav.inboxShort' | t }}</span>
     </a>
-    <a class="tab" routerLink="/requests" [class.active]="section() === 'requests'" [attr.aria-current]="section() === 'requests' ? 'page' : null">
-      <app-icon name="list" [size]="1.375" />
-      <span>{{ 'app.nav.requests' | t }}</span>
-    </a>
-    @if (session.can('request.create')) {
+    @if (requesterTab()) {
       <a class="tab" routerLink="/requests/new" [class.active]="section() === 'new'" [attr.aria-current]="section() === 'new' ? 'page' : null">
         <app-icon name="plusCircle" [size]="1.375" />
         <span>{{ 'app.nav.newShort' | t }}</span>
       </a>
+    } @else {
+      <a class="tab" routerLink="/board" [class.active]="section() === 'board'" [attr.aria-current]="section() === 'board' ? 'page' : null">
+        <app-icon name="board" [size]="1.375" />
+        <span>{{ 'app.nav.board' | t }}</span>
+      </a>
     }
-    <a class="tab" routerLink="/analytics" [class.active]="section() === 'analytics'" [attr.aria-current]="section() === 'analytics' ? 'page' : null">
-      <app-icon name="chart" [size]="1.375" />
-      <span>{{ 'app.nav.analytics' | t }}</span>
+    <a class="tab" routerLink="/requests" [class.active]="section() === 'requests'" [attr.aria-current]="section() === 'requests' ? 'page' : null">
+      <app-icon name="list" [size]="1.375" />
+      <span>{{ 'app.nav.requestsShort' | t }}</span>
     </a>
     <button
       type="button"
       class="tab"
       aria-haspopup="dialog"
-      [class.active]="popover.openKey() === 'profile'"
-      [attr.aria-expanded]="popover.openKey() === 'profile'"
-      (click)="toggleProfile($event)"
+      [class.active]="moreActive()"
+      [attr.aria-expanded]="popover.openKey() === 'more' || popover.openKey() === 'profile'"
+      (click)="toggleMore($event)"
     >
-      <app-avatar [name]="session.actor().name" size="sm" />
-      <span>{{ 'app.nav.profile' | t }}</span>
+      <app-icon name="more" [size]="1.375" />
+      <span>{{ 'app.nav.moreShort' | t }}</span>
     </button>
   </nav>
 </div>

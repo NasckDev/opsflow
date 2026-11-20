@@ -326,3 +326,31 @@ tbody tr {
   display: flex;
   gap: var(--ox-space-2);
 }
+
+.more-cards {
+  width: 100%;
+  margin-top: var(--ox-space-3);
+}
+
+@media (max-width: 959px) {
+  .toolbar {
+    position: sticky;
+    top: var(--ox-topbar-h);
+    z-index: 15;
+    margin-inline: calc(var(--ox-space-4) * -1);
+    padding: var(--ox-space-2) var(--ox-space-4);
+    background: var(--ox-page);
+  }
+}
+
+@media (min-width: 960px) {
+  .more-cards {
+    display: none;
+  }
+}
+
+@media (max-width: 959px) {
+  .header-actions .btn:not(.btn-primary):not(.new-desktop) {
+    display: none;
+  }
+}

@@ -7,7 +7,7 @@ export interface CsvLabels {
   readonly category: (value: WorkflowRequest['category']) => string;
 }
 
-const FORMULA_PREFIX = /^[=+\-@\t\r]/;
+const FORMULA_PREFIX = /^[=+\-@\t\r\n]/;
 
 /** Escapa uma célula e neutraliza injeção de fórmula em planilhas (=, +, -, @). */
 export function csvCell(value: string | number): string {

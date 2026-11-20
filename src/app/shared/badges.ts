@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { TranslatePipe } from '../core/i18n/translate.pipe';
 import { Priority, RequestStatus, WorkflowRequest } from '../domain/request.model';
-import { evaluateSla, formatHours, slaElapsedRatio } from '../domain/sla';
+import { evaluateSla, formatHours, slaElapsedRatio, slaOutcome } from '../domain/sla';
 import { Icon, IconName } from './icon';
 
 @Component({
@@ -119,7 +119,11 @@ export class PriorityBadge {
           {{ 'sla.at_risk' | t: { time: time() } }}
         }
         @case ('closed') {
-          {{ 'sla.closed' | t }}
+          @if (outcome(); as result) {
+            {{ (result.late ? 'sla.decidedLate' : 'sla.decidedOnTime') | t: { time: outcomeTime() } }}
+          } @else {
+            {{ 'sla.closed' | t }}
+          }
         }
         @default {
           {{ 'sla.on_track' | t: { time: time() } }}
@@ -132,10 +136,14 @@ export class PriorityBadge {
   `,
 })
 export class SlaMeter {
-  readonly request = input.required<Pick<WorkflowRequest, 'createdAt' | 'dueAt' | 'status'>>();
+  readonly request = input.required<
+    Pick<WorkflowRequest, 'createdAt' | 'dueAt' | 'status' | 'audit'>
+  >();
   readonly large = input(false);
   private readonly now = new Date();
   protected readonly sla = computed(() => evaluateSla(this.request(), this.now));
   protected readonly time = computed(() => formatHours(Math.abs(this.sla().hoursRemaining)));
+  protected readonly outcome = computed(() => slaOutcome(this.request()));
+  protected readonly outcomeTime = computed(() => formatHours(this.outcome()?.hours ?? 0));
   protected readonly percent = computed(() => slaElapsedRatio(this.request(), this.now) * 100);
 }

@@ -126,7 +126,7 @@
           </div>
 
           <ul class="cards">
-            @for (request of visible(); track request.id) {
+            @for (request of cards(); track request.id) {
               <li>
                 <a class="req-card card" [routerLink]="['/requests', request.id]">
                   <span class="req-top">
@@ -146,6 +146,9 @@
               </li>
             }
           </ul>
+          @if (moreCards() > 0) {
+            <button type="button" class="btn more-cards" (click)="showMore()">{{ 'list.showMore' | t: { count: moreCards() } }}</button>
+          }
         }
       }
     }

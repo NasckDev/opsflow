@@ -2,6 +2,7 @@ import { LiveAnnouncer } from '@angular/cdk/a11y';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   afterNextRender,
   computed,
@@ -31,7 +32,8 @@ import {
   toNewRequestInput,
 } from './wizard-form';
 import {
-  WIZARD_DRAFT_KEY,
+  WIZARD_DRAFT_VERSION,
+  draftKeyFor,
   WizardDraft,
   WizardDraftValue,
   isWorthSaving,
@@ -58,6 +60,8 @@ export class RequestWizard {
   protected readonly session = inject(SessionStore);
 
   private readonly store = inject(RequestsStore);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly draftKey = draftKeyFor(this.session.actor().name);
   protected readonly restored = signal<WizardDraft | null>(null);
   protected readonly savedAt = signal<string | null>(null);
 
@@ -82,7 +86,7 @@ export class RequestWizard {
 
   /** Descarta o rascunho restaurado e volta ao formulário em branco. */
   protected discardDraft(): void {
-    writeStorage(WIZARD_DRAFT_KEY, '');
+    writeStorage(this.draftKey, '');
     this.restored.set(null);
     this.savedAt.set(null);
     this.form.reset(createWizardForm().getRawValue());
@@ -90,7 +94,7 @@ export class RequestWizard {
   }
 
   private restoreDraft(): void {
-    const draft = parseWizardDraft(readStorage(WIZARD_DRAFT_KEY));
+    const draft = parseWizardDraft(readStorage(this.draftKey));
     if (!draft) return;
     const { value } = draft;
     this.form.patchValue({
@@ -103,7 +107,9 @@ export class RequestWizard {
       },
       deadline: { dueAt: value.dueAt, documents: value.documents },
     });
-    this.step.set(draft.step);
+    // O rascunho vem do navegador: se ele diz "passo 2" mas o passo 1 não valida, volta ao passo 1.
+    const detailsOk = this.form.controls.details.valid;
+    this.step.set(draft.step === 1 && !detailsOk ? 0 : draft.step);
     this.restored.set(draft);
     this.savedAt.set(draft.savedAt);
   }
@@ -112,14 +118,14 @@ export class RequestWizard {
     const { details, deadline } = this.form.getRawValue();
     const value: WizardDraftValue = { ...details, dueAt: deadline.dueAt, documents: deadline.documents };
     if (!isWorthSaving(value)) {
-      writeStorage(WIZARD_DRAFT_KEY, '');
+      writeStorage(this.draftKey, '');
       this.savedAt.set(null);
       return;
     }
     const savedAt = new Date().toISOString();
     writeStorage(
-      WIZARD_DRAFT_KEY,
-      JSON.stringify({ savedAt, step: Math.min(this.step(), 1), value }),
+      this.draftKey,
+      JSON.stringify({ version: WIZARD_DRAFT_VERSION, savedAt, step: Math.min(this.step(), 1), value }),
     );
     this.savedAt.set(savedAt);
   }
@@ -150,11 +156,11 @@ export class RequestWizard {
     this.saving.set(true);
     this.saveError.set(false);
     this.api
-      .create({ input: toNewRequestInput(this.form), actor: this.session.actor(), submit })
-      .pipe(finalize(() => this.saving.set(false)))
+      .create({ input: toNewRequestInput(this.form), submit })
+      .pipe(finalize(() => this.saving.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (created) => {
-          writeStorage(WIZARD_DRAFT_KEY, '');
+          writeStorage(this.draftKey, '');
           this.store.upsert(created);
           this.announcer.announce(this.i18n.translate('wizard.saved', { code: created.code }));
           void this.router.navigate(['/requests', created.id]);
@@ -191,6 +197,7 @@ export class RequestWizard {
   }
 
   private goTo(index: number): void {
+    this.restored.set(null); // o aviso de rascunho recuperado some assim que o usuário avança
     this.step.set(Math.min(Math.max(index, 0), STEPS.length - 1));
     this.afterRender(() =>
       this.stepPanel().nativeElement.querySelector<HTMLElement>('h2')?.focus(),

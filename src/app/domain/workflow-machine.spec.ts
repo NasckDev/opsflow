@@ -25,7 +25,9 @@ describe('workflow state machine', () => {
     ];
 
     it.each(cases)('%s --%s(%s)--> %s', (from, action, role, to, comment) => {
-      const result = applyTransition(buildRequest({ status: from }), action, ctx(role, comment));
+      // Enviar e reenviar são do dono: o solicitante do teste é o criador da solicitação.
+      const owner = role === 'requester' ? { requester: actor(role).name } : {};
+      const result = applyTransition(buildRequest({ status: from, ...owner }), action, ctx(role, comment));
       expect(result.ok && result.value.status).toBe(to);
     });
   });
@@ -111,7 +113,8 @@ describe('workflow state machine', () => {
       ['approved', 'admin', ['complete']],
       ['completed', 'admin', []],
     ] as const)('%s as %s → %j', (status, role, expected) => {
-      expect(availableActions(buildRequest({ status }), actor(role))).toEqual(expected);
+      const owner = role === 'requester' ? { requester: actor(role).name } : {};
+      expect(availableActions(buildRequest({ status, ...owner }), actor(role))).toEqual(expected);
     });
 
     it('hides segregated actions from the requester acting as reviewer', () => {

@@ -25,9 +25,20 @@ export class Popover {
   readonly openKey = this.activeKey.asReadonly();
 
   toggle(trigger: HTMLElement, key: string, component: Type<unknown>): void {
-    const wasOpen = this.activeKey() === key;
-    this.close(!wasOpen ? false : true);
-    if (!wasOpen) this.open(trigger, key, component);
+    if (this.activeKey() === key) {
+      this.close();
+      return;
+    }
+    this.close(false);
+    this.open(trigger, key, component);
+  }
+
+  /** Troca o painel aberto por outro, mantendo o mesmo gatilho (e o foco de volta a ele depois). */
+  swap(key: string, component: Type<unknown>): void {
+    const trigger = this.trigger;
+    if (!trigger) return;
+    this.close(false);
+    this.open(trigger, key, component);
   }
 
   close(restoreFocus = true): void {

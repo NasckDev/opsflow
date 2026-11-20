@@ -1,7 +1,9 @@
-import { InboxTask } from '../../domain/inbox';
+import { InboxStage, InboxTask } from '../../domain/inbox';
 import { CATEGORIES, Category, PRIORITIES, Priority } from '../../domain/request.model';
 
 export interface InboxFilter {
+  /** "todo": falta decidir ou enviar. "conclude": já aprovada, falta concluir. */
+  readonly stage: InboxStage;
   /** Só o que está vencido ou perto de vencer. */
   readonly urgentOnly: boolean;
   readonly priority: Priority | 'any';
@@ -14,24 +16,46 @@ export interface SavedFilter {
   readonly filter: InboxFilter;
 }
 
-export const NO_FILTER: InboxFilter = { urgentOnly: false, priority: 'any', category: 'any' };
+export const NO_FILTER: InboxFilter = {
+  stage: 'todo',
+  urgentOnly: false,
+  priority: 'any',
+  category: 'any',
+};
 export const SAVED_FILTERS_KEY = 'opsflow.inbox.filters';
-const MAX_SAVED = 8;
+export const MAX_SAVED_FILTERS = 8;
 const NAME_MAX = 24;
 
-export const PRESET_FILTERS: readonly { readonly id: string; readonly label: string; readonly filter: InboxFilter }[] = [
+export interface FilterPreset {
+  readonly id: string;
+  readonly label: string;
+  readonly filter: InboxFilter;
+}
+
+export const PRESET_FILTERS: readonly FilterPreset[] = [
   { id: 'all', label: 'inbox.preset.all', filter: NO_FILTER },
   { id: 'urgent', label: 'inbox.preset.urgent', filter: { ...NO_FILTER, urgentOnly: true } },
   { id: 'high', label: 'inbox.preset.high', filter: { ...NO_FILTER, priority: 'high' } },
-  { id: 'contracts', label: 'inbox.preset.contracts', filter: { ...NO_FILTER, category: 'contract' } },
+  {
+    id: 'contracts',
+    label: 'inbox.preset.contracts',
+    filter: { ...NO_FILTER, category: 'contract' },
+  },
+  { id: 'conclude', label: 'inbox.preset.conclude', filter: { ...NO_FILTER, stage: 'conclude' } },
 ];
 
 export function sameFilter(a: InboxFilter, b: InboxFilter): boolean {
-  return a.urgentOnly === b.urgentOnly && a.priority === b.priority && a.category === b.category;
+  return (
+    a.stage === b.stage &&
+    a.urgentOnly === b.urgentOnly &&
+    a.priority === b.priority &&
+    a.category === b.category
+  );
 }
 
 export function applyInboxFilter(tasks: readonly InboxTask[], filter: InboxFilter): InboxTask[] {
-  return tasks.filter(({ request, sla }) => {
+  return tasks.filter(({ request, sla, stage }) => {
+    if (stage !== filter.stage) return false;
     if (filter.urgentOnly && sla.state !== 'breached' && sla.state !== 'at_risk') return false;
     if (filter.priority !== 'any' && request.priority !== filter.priority) return false;
     return filter.category === 'any' || request.category === filter.category;
@@ -62,11 +86,15 @@ export function parseSavedFilters(raw: string | null): SavedFilter[] {
     const { id, name, filter } = item as Record<string, unknown>;
     if (typeof id !== 'string' || typeof name !== 'string') continue;
     if (typeof filter !== 'object' || filter === null) continue;
-    const { urgentOnly, priority, category } = filter as Record<string, unknown>;
+    const { urgentOnly, priority, category, stage } = filter as Record<string, unknown>;
     if (typeof urgentOnly !== 'boolean' || !isPriority(priority) || !isCategory(category)) continue;
-    result.push({ id, name: name.slice(0, NAME_MAX), filter: { urgentOnly, priority, category } });
+    result.push({
+      id,
+      name: name.slice(0, NAME_MAX),
+      filter: { stage: stage === 'conclude' ? 'conclude' : 'todo', urgentOnly, priority, category },
+    });
   }
-  return result.slice(0, MAX_SAVED);
+  return result.slice(0, MAX_SAVED_FILTERS);
 }
 
 export function addSavedFilter(
@@ -76,6 +104,10 @@ export function addSavedFilter(
 ): SavedFilter[] {
   const clean = name.trim().slice(0, NAME_MAX);
   if (!clean || sameFilter(filter, NO_FILTER)) return [...saved];
-  const entry: SavedFilter = { id: `f-${saved.length + 1}-${clean.toLowerCase()}`, name: clean, filter };
-  return [...saved.filter((item) => item.name !== clean), entry].slice(-MAX_SAVED);
+  const entry: SavedFilter = {
+    id: `f-${saved.length + 1}-${clean.toLowerCase()}`,
+    name: clean,
+    filter,
+  };
+  return [...saved.filter((item) => item.name !== clean), entry].slice(-MAX_SAVED_FILTERS);
 }

@@ -36,6 +36,10 @@ export class Admin {
     return can(role, permission);
   }
 
+  protected hasAny(role: Role): boolean {
+    return this.permissions.some((permission) => can(role, permission));
+  }
+
   protected actAs(role: Role): void {
     this.session.setRole(role);
     const message = this.i18n.translateDynamic('admin.actingAs', {

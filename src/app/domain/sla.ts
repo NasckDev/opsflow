@@ -2,7 +2,8 @@ import { RequestStatus, WorkflowRequest } from './request.model';
 
 export const AT_RISK_THRESHOLD_HOURS = 24;
 const MS_PER_HOUR = 3_600_000;
-const CLOSED_STATUSES: readonly RequestStatus[] = ['rejected', 'completed'];
+/** O SLA mede o tempo até a decisão: depois de aprovada ou rejeitada ele para de correr. */
+const CLOSED_STATUSES: readonly RequestStatus[] = ['approved', 'rejected', 'completed'];
 
 export type SlaState = 'on_track' | 'at_risk' | 'breached' | 'closed';
 
@@ -62,4 +63,20 @@ export function formatCountdown(milliseconds: number): string {
   if (hours < 24) return `${hours}h ${String(minutes % 60).padStart(2, '0')}m`;
   const days = Math.floor(hours / 24);
   return `${days}d ${hours % 24}h`;
+}
+
+export interface SlaOutcome {
+  readonly late: boolean;
+  /** Diferença absoluta entre a decisão e o prazo, em horas. */
+  readonly hours: number;
+}
+
+/** Como a decisão se saiu frente ao prazo; null enquanto não houve decisão (ou sem trilha). */
+export function slaOutcome(
+  request: Pick<WorkflowRequest, 'dueAt' | 'audit'>,
+): SlaOutcome | null {
+  const decision = request.audit.find((entry) => entry.action === 'approve' || entry.action === 'reject');
+  if (!decision) return null;
+  const difference = Date.parse(request.dueAt) - Date.parse(decision.at);
+  return { late: difference < 0, hours: Math.abs(Math.round(difference / MS_PER_HOUR)) };
 }

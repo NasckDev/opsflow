@@ -414,3 +414,10 @@ input[type='radio'] {
 .cdk-drag-animating {
   transition: transform var(--ox-motion-duration-normal) var(--ox-ease);
 }
+
+/* Com a barra de ação em lote aberta (celular), os avisos sobem para não ficarem atrás dela. */
+@media (max-width: 959px) {
+  body:has(.batch-bar) app-toasts {
+    bottom: calc(var(--ox-bottomnav-h) + var(--ox-safe-bottom) + 4.5rem);
+  }
+}

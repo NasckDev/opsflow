@@ -9,6 +9,12 @@ export class NowService {
   readonly now = this.current.asReadonly();
 
   constructor() {
-    setInterval(() => this.current.set(new Date()), TICK_MS);
+    setInterval(() => {
+      if (!document.hidden) this.current.set(new Date());
+    }, TICK_MS);
+    // Ao voltar para a aba, atualiza na hora em vez de esperar o próximo tique.
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) this.current.set(new Date());
+    });
   }
 }

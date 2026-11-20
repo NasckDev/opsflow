@@ -1,7 +1,15 @@
 import { AuditEntry, Role, WorkflowRequest } from './request.model';
 
 export type ChainStepId = 'request' | 'review' | 'approval' | 'completion';
-export type ChainStepState = 'done' | 'current' | 'pending' | 'rejected' | 'returned';
+export type ChainStepState =
+  | 'done'
+  | 'current'
+  | 'pending'
+  | 'rejected'
+  | 'returned'
+  /** Etapa que o fluxo permite pular (a revisão): o aprovador pode decidir sem ela. */
+  | 'optional'
+  | 'skipped';
 
 export interface ChainStep {
   readonly id: ChainStepId;
@@ -26,7 +34,7 @@ function requestStep(request: WorkflowRequest): ChainStep {
   return {
     id: 'request',
     role: 'requester',
-    state: request.status === 'draft' ? 'current' : 'done',
+    state: request.status === 'draft' || request.status === 'returned' ? 'current' : 'done',
     actor: request.requester,
     at: submitted?.at,
   };
@@ -41,13 +49,14 @@ function reviewStep(request: WorkflowRequest): ChainStep {
     (entry) => entry.action === 'reject' && entry.role === 'reviewer',
   );
   const actedBy = rejectedByReviewer ?? returned;
+  const resolved: ChainStep['state'] = actedBy ? 'done' : 'skipped';
   const byStatus: Partial<Record<WorkflowRequest['status'], ChainStep['state']>> = {
     draft: 'pending',
-    in_review: 'current',
+    in_review: 'optional',
     returned: 'returned',
-    approved: 'done',
-    completed: 'done',
-    rejected: rejectedByReviewer ? 'rejected' : 'done',
+    approved: resolved,
+    completed: resolved,
+    rejected: rejectedByReviewer ? 'rejected' : 'skipped',
   };
   return {
     id: 'review',

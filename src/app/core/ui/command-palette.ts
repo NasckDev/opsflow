@@ -79,13 +79,6 @@ export class CommandPalette {
         run: go('/requests'),
       },
       { id: 'go-board', group: 'go', label: t('app.nav.board'), icon: 'board', run: go('/board') },
-      {
-        id: 'go-analytics',
-        group: 'go',
-        label: t('app.nav.analytics'),
-        icon: 'chart',
-        run: go('/analytics'),
-      },
       { id: 'go-admin', group: 'go', label: t('app.nav.admin'), icon: 'shield', run: go('/admin') },
       {
         id: 'go-new',
@@ -95,6 +88,15 @@ export class CommandPalette {
         run: go('/requests/new'),
       },
     ];
+    if (this.session.can('audit.view')) {
+      navigation.splice(3, 0, {
+        id: 'go-analytics',
+        group: 'go',
+        label: t('app.nav.analytics'),
+        icon: 'chart',
+        run: go('/analytics'),
+      });
+    }
     const actions: PaletteCommand[] = [
       {
         id: 'theme',

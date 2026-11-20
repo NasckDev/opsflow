@@ -1,6 +1,13 @@
 import { CATEGORIES, Category, PRIORITIES, Priority } from '../../../domain/request.model';
 
 export const WIZARD_DRAFT_KEY = 'opsflow.wizard.draft';
+/** Muda quando o formato do rascunho muda: versões antigas são descartadas, não adivinhadas. */
+export const WIZARD_DRAFT_VERSION = 1;
+
+/** Cada usuário tem o próprio rascunho: trocar de papel não vaza texto de outra pessoa. */
+export function draftKeyFor(userName: string): string {
+  return `${WIZARD_DRAFT_KEY}.${userName}`;
+}
 
 export interface WizardDraftValue {
   readonly title: string;
@@ -13,6 +20,7 @@ export interface WizardDraftValue {
 }
 
 export interface WizardDraft {
+  readonly version: number;
   readonly savedAt: string;
   readonly step: number;
   readonly value: WizardDraftValue;
@@ -32,8 +40,10 @@ export function parseWizardDraft(raw: string | null): WizardDraft | null {
     return null;
   }
   if (typeof data !== 'object' || data === null) return null;
-  const { savedAt, step, value } = data as Record<string, unknown>;
-  if (typeof savedAt !== 'string' || typeof step !== 'number') return null;
+  const { version, savedAt, step, value } = data as Record<string, unknown>;
+  if (version !== WIZARD_DRAFT_VERSION) return null;
+  if (typeof savedAt !== 'string' || Number.isNaN(Date.parse(savedAt))) return null;
+  if (typeof step !== 'number' || !Number.isFinite(step)) return null;
   if (typeof value !== 'object' || value === null) return null;
   const v = value as Record<string, unknown>;
   const title = text(v['title'], 200);
@@ -45,8 +55,11 @@ export function parseWizardDraft(raw: string | null): WizardDraft | null {
   const amount = v['amount'];
   if (title === null || description === null || dueAt === null || documents === null) return null;
   if (!category || !priority) return null;
-  if (amount !== null && (typeof amount !== 'number' || !Number.isFinite(amount))) return null;
+  if (amount !== null && (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 0)) {
+    return null;
+  }
   return {
+    version: WIZARD_DRAFT_VERSION,
     savedAt,
     step: Math.min(Math.max(Math.trunc(step), 0), 1),
     value: { title, description, category, priority, amount, dueAt, documents },

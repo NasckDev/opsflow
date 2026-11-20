@@ -6,6 +6,13 @@
     </div>
   </header>
 
+  @if (locked()) {
+    <div class="state">
+      <app-icon name="lock" [size]="2" />
+      <h2>{{ 'analytics.locked.title' | t }}</h2>
+      <p>{{ 'analytics.locked.hint' | t }}</p>
+    </div>
+  } @else {
   @switch (status()) {
     @case ('error') {
       <div class="state state-error" role="alert">
@@ -130,5 +137,6 @@
         }
       </div>
     }
+  }
   }
 </section>

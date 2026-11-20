@@ -26,6 +26,13 @@ export function toDateTimeLocal(date: Date): string {
   );
 }
 
+/** Prazo padrão: daqui a 3 dias, às 18h em ponto (um horário que alguém marcaria de verdade). */
+export function defaultDueDate(now: Date): Date {
+  const due = new Date(now.getTime() + 3 * DAY_MS);
+  due.setHours(18, 0, 0, 0);
+  return due;
+}
+
 export function createWizardForm(now = new Date()) {
   const nonNullable = { nonNullable: true } as const;
   return new FormGroup({
@@ -42,7 +49,7 @@ export function createWizardForm(now = new Date()) {
       }),
     }),
     deadline: new FormGroup({
-      dueAt: new FormControl(toDateTimeLocal(new Date(now.getTime() + 3 * DAY_MS)), {
+      dueAt: new FormControl(toDateTimeLocal(defaultDueDate(now)), {
         ...nonNullable,
         validators: [Validators.required, futureDateValidator],
       }),

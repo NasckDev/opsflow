@@ -10,6 +10,8 @@ export interface CommentPromptData {
   readonly code: string;
   /** Aprovar fora do SLA pede justificativa em vez de comentário. */
   readonly justification: boolean;
+  /** Quanto tempo o item está atrasado (ex.: "1d 20h"), quando o SLA estourou. */
+  readonly overdue: string | null;
 }
 
 /** Pede o comentário obrigatório antes de devolver, rejeitar ou aprovar fora do SLA. */
@@ -17,6 +19,16 @@ export interface CommentPromptData {
   selector: 'app-comment-prompt',
   imports: [CdkTrapFocus, TranslatePipe, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: `
+    .overdue {
+      margin: 0;
+      padding: var(--ox-space-3);
+      color: var(--ox-color-danger);
+      background: var(--ox-color-danger-surface);
+      border-radius: var(--ox-radius-md);
+      line-height: 1.45;
+    }
+  `,
   template: `
     <form
       class="dialog-card"
@@ -27,6 +39,9 @@ export interface CommentPromptData {
       <h2 id="prompt-title">
         {{ 'action.' + data.action | t }} · <span class="mono">{{ data.code }}</span>
       </h2>
+      @if (data.overdue) {
+        <p class="overdue" role="note">{{ 'prompt.overdue' | t: { time: data.overdue } }}</p>
+      }
       <div class="field">
         <label for="prompt-comment">
           {{ (data.justification ? 'prompt.justification' : 'detail.comment') | t }}
@@ -51,7 +66,7 @@ export interface CommentPromptData {
       <div class="dialog-actions">
         <button type="button" class="btn" (click)="ref.close()">{{ 'wizard.cancel' | t }}</button>
         <button type="submit" class="btn btn-primary">
-          <app-icon name="check" />{{ 'prompt.confirm' | t }}
+          <app-icon name="check" />{{ (data.justification ? 'prompt.approveWithJustification' : 'prompt.confirm') | t }}
         </button>
       </div>
     </form>

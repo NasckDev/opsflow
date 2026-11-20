@@ -1,6 +1,6 @@
 # OpsFlow · A sala de controle das aprovações
 
-Console de workflow e aprovações para quem decide o dia inteiro: cada papel abre o app na **caixa de entrada** das próprias tarefas, com SLA em contagem regressiva, aprovação em lote e atalhos de teclado. Por baixo há uma máquina de estados com permissões por papel, segregação de funções e trilha de auditoria imutável.
+Console de workflow e aprovações para quem decide o dia inteiro: cada papel abre o app na **caixa de entrada** das próprias tarefas, com SLA em contagem regressiva, aprovação em lote e atalhos de teclado. A demo abre como **Aprovador**, que é onde está o valor; o perfil troca o papel para ver o app como Solicitante, Revisor, Auditor ou Administrador. Por baixo há uma máquina de estados com permissões por papel, segregação de funções e trilha de auditoria imutável.
 
 Todos os dados são fictícios e a API é simulada no navegador (interceptor HTTP), então o app roda inteiro em qualquer hospedagem estática.
 
@@ -12,7 +12,13 @@ Desktop em 1440x900 e celular em 390x844, com os dados fictícios de exemplo.
 
 ![Caixa de entrada do aprovador, com SLA em contagem regressiva e ações por tarefa](docs/prints/opsflow-caixa-entrada-desktop.webp)
 
-<img src="docs/prints/opsflow-caixa-entrada-mobile.webp" alt="Caixa de entrada no celular" width="260"> <img src="docs/prints/opsflow-lista-solicitacoes-mobile.webp" alt="Lista de solicitações no celular, em cartões" width="260"> <img src="docs/prints/opsflow-detalhe-auditoria-mobile.webp" alt="Detalhe com auditoria no celular" width="260">
+![Decidir resolve a tarefa: sai da caixa, o contador cai e o aviso oferece Desfazer](docs/prints/opsflow-caixa-desfazer-desktop.webp)
+
+![Aprovação em lote com a seleção congelada](docs/prints/opsflow-caixa-lote-desktop.webp)
+
+<img src="docs/prints/opsflow-caixa-entrada-mobile.webp" alt="Caixa de entrada no celular" width="220"> <img src="docs/prints/opsflow-caixa-lote-mobile.webp" alt="Aprovação em lote no celular, com a barra de ação fixa" width="220"> <img src="docs/prints/opsflow-mais-mobile.webp" alt="Folha Mais do celular" width="220">
+
+<img src="docs/prints/opsflow-quadro-mobile.webp" alt="Quadro no celular, com abas por coluna" width="220"> <img src="docs/prints/opsflow-admin-mobile.webp" alt="Permissões por papel no celular" width="220"> <img src="docs/prints/opsflow-lista-solicitacoes-mobile.webp" alt="Lista de solicitações no celular, em cartões" width="220"> <img src="docs/prints/opsflow-detalhe-auditoria-mobile.webp" alt="Detalhe com auditoria no celular" width="220">
 
 ![Quadro kanban por estado, com arrastar e soltar que respeita a máquina de estados](docs/prints/opsflow-quadro-desktop.webp)
 
@@ -36,14 +42,15 @@ Desktop em 1440x900 e celular em 390x844, com os dados fictícios de exemplo.
 
 ## O que o produto faz
 
-- **Caixa de entrada por papel.** "Minhas tarefas" com contagem regressiva de SLA, filtros rápidos e salvos, aprovação em lote (só do que não exige justificativa) e atalhos `j`/`k`, `Enter`, `x`, `a`, `r`.
+- **Caixa de entrada por papel.** "Minhas tarefas" com contagem regressiva de SLA, filtros rápidos e salvos e atalhos `j`/`k`, `Enter`, `x`, `a`, `r`. Decidir **resolve a tarefa**: ela sai da caixa na hora, o contador e o selo caem, o SLA congela ("Decidida no prazo" ou "com 5h de atraso") e um aviso oferece **Desfazer** por 6 segundos (a decisão só é confirmada na API depois dessa janela). O que foi aprovado e falta concluir aparece no filtro "Para concluir".
+- **Aprovação em lote.** A seleção é congelada no clique, as chamadas rodam em paralelo com "Aprovando 3 de 8…" e barra de progresso, e o resultado lista o que foi pulado e por quê (item que passou do prazo no meio do caminho vira "pulado", sem abrir diálogo).
 - **Quadro kanban.** Arrastar com CDK DragDrop. Colunas que aceitam o movimento acendem durante o arraste; um movimento que a máquina de estados não prevê, ou que o papel não pode fazer, é bloqueado com explicação. Alternativa sem mouse: "Mover para" em cada cartão.
 - **Detalhe.** Cabeçalho com status e SLA, cadeia de aprovação (solicitação, revisão, aprovação, conclusão), ações conforme o papel, comentários em thread, anexos simulados e linha do tempo de auditoria.
 - **Nova solicitação.** Wizard em três etapas com validação, **rascunho salvo automaticamente** (recuperado ao recarregar) e revisão antes de enviar.
 - **Análises.** Vazão por semana, cumprimento de SLA, gargalo por etapa e ações por papel. Todo gráfico tem versão em tabela e descrição para leitor de tela.
 - **Administração.** Matriz de permissões visual, usuários de demonstração (atuar como) e as regras do fluxo.
 - **Lista de solicitações.** Tabela densa (ordenação por coluna, contadores por status, busca com debounce) que vira cartões no celular, e exportação em CSV (com proteção contra injeção de fórmula).
-- **Navegação de app.** Sidebar no desktop, barra inferior no celular, busca global, paleta de comandos (`Ctrl`/`⌘` + `K`), notificações, modal de atalhos (`?`) e estado na URL (rota por hash).
+- **Navegação de app.** Sidebar no desktop; no celular, barra inferior com Caixa, Quadro (ou Nova, para o Solicitante), Solicitações e **Mais** (Análises, Administração, Nova solicitação, paleta, atalhos e perfil), busca global, paleta de comandos (`Ctrl`/`⌘` + `K`), notificações, modal de atalhos (`?`) e estado na URL (rota por hash).
 - **Preferências.** Papel, idioma (pt-BR e English, com plural correto), tema claro e escuro, densidade compacta ou confortável e "Simular falhas da API".
 
 ## Atalhos
@@ -121,6 +128,10 @@ Testada por tabela em `src/app/domain/permissions.spec.ts` e exibida na tela Adm
 
 `src/app/domain/legacy-adapter.ts` converte o JSON do sistema antigo (`STATUS_CD`, datas `dd/mm/aaaa`, valores `1.234,56`) para o domínio novo, validando cada campo e registrando a migração na auditoria.
 
+## Segurança e limites da demonstração
+
+O RBAC e a validação **são aplicados na API simulada**, não só na tela: o ator vai nos cabeçalhos de cada chamada e o servidor filtra o que o Solicitante vê (só as próprias solicitações), remove a trilha de auditoria de quem não tem `audit.view`, recusa criar, enviar, comentar ou anexar sem permissão (403), valida todo corpo de entrada (422), só aceita anexos em rascunho ou devolvida e detecta conflito por status **e** versão (`updatedAt`), inclusive o caso A-B-A. Mesmo assim isto é uma demonstração: num produto real essas regras precisam viver no servidor, com autenticação de verdade, e o navegador nunca é fonte de confiança.
+
 ## Decisões
 
 1. **Cache único de solicitações (`RequestsStore`).** Caixa de entrada, quadro, análises, notificações e paleta leem do mesmo signal; uma ação em qualquer tela atualiza todas.
@@ -130,6 +141,9 @@ Testada por tabela em `src/app/domain/permissions.spec.ts` e exibida na tela Adm
 5. **Rota por hash e build portátil.** O mesmo artefato funciona em `/opsflow/` (Pages) e em qualquer subcaminho do portfólio.
 6. **Entradas do navegador não são confiáveis.** Rascunho do wizard e filtros salvos são validados campo a campo antes de usar; CSV neutraliza fórmulas; nomes de anexo são saneados.
 7. **Plural no dicionário.** Textos usam `{count, plural, one {…} other {…}}` em vez de "item(ns)".
+8. **Desfazer como janela de graça.** A máquina de estados não tem transição inversa, então "desfazer" não inventa uma: a decisão é aplicada na tela e só enviada depois de 6 segundos; desfazer cancela o envio. Se outra ação mexe na mesma solicitação antes disso, a pendente é confirmada primeiro.
+9. **Cadeia de aprovação honesta.** Só a etapa atual fica "Em andamento". A revisão é **opcional** (o aprovador pode decidir sem ela) e a interface diz isso.
+10. **Enviar é do dono.** Enviar e reenviar exigem ser o criador da solicitação (o administrador pode agir em nome dele, regra explícita e testada).
 
 ## Acessibilidade
 
@@ -143,12 +157,12 @@ Testada por tabela em `src/app/domain/permissions.spec.ts` e exibida na tela Adm
 
 ## Testes
 
-- **150 testes unitários** (Vitest, 10 arquivos): máquina de estados, RBAC, SLA, auditoria, migração de legado, cadeia de aprovação, caixa de entrada, notificações, análises, ordenação, filtros, CSV, rascunho, plural e paridade dos dicionários pt-BR e en (inclui varredura das chaves usadas nos templates).
-- **28 testes E2E** (Playwright + axe) contra o build portátil servido em `/projetos/opsflow/`: axe nos dois temas, aprovar da caixa de entrada, comentário obrigatório, aprovação em lote, atalhos, arrastar no quadro (transição inválida bloqueada), segregação de funções, auditor somente leitura, comentários, rascunho do wizard, criação de solicitação, paleta, recarregar em rota interna e inglês.
+- **275 testes unitários** (Vitest, 20 arquivos): máquina de estados, RBAC, SLA, auditoria, migração de legado, cadeia de aprovação, caixa de entrada, notificações, análises, ordenação, filtros, CSV, rascunho, plural e paridade dos dicionários pt-BR e en (inclui varredura das chaves usadas nos templates).
+- **52 testes E2E** (Playwright + axe) contra o build portátil servido em `/projetos/opsflow/`: axe nos dois temas, aprovar da caixa de entrada, comentário obrigatório, aprovação em lote, atalhos, arrastar no quadro (transição inválida bloqueada), segregação de funções, auditor somente leitura, comentários, rascunho do wizard, criação de solicitação, paleta, recarregar em rota interna e inglês.
 
 ## Desempenho
 
-Bundle inicial: **491 kB** (125 kB transferidos). Cada tela é carregada sob demanda (o maior bloco é o quadro, com 68 kB, por causa do CDK DragDrop). Fontes em `woff2`, só o subconjunto latino.
+Bundle inicial: **495 kB** (127 kB transferidos). Cada tela é carregada sob demanda (o maior bloco é o quadro, com 68 kB, por causa do CDK DragDrop). Fontes em `woff2`, só o subconjunto latino.
 
 ## Como rodar
 
@@ -169,9 +183,11 @@ npm run e2e             # Playwright + axe (usa o Chrome instalado e o build por
 ## O que ficou de fora
 
 - Estado dos filtros da caixa de entrada e da lista na URL (hoje só a rota fica na URL; filtros salvos ficam no navegador).
-- Desfazer uma decisão: a máquina de estados não tem transição inversa, então não há "desfazer" honesto.
+- Desfazer depois da janela de 6 s: dentro dela a decisão é adiada e pode ser cancelada; depois disso não há transição inversa na máquina de estados.
 - Anexos reais: são simulados (só o nome do arquivo é registrado).
-- Teste de componente em jsdom para os fluxos principais: a cobertura de interface está no E2E.
+- Teste de componente de todos os fluxos: há specs de componente para Caixa de entrada, Cadeia de aprovação e Contagem, o resto fica no E2E.
+- Erro do quadro perto do cartão arrastado (hoje é um aviso global) e telas de erro/vazio ainda duplicadas entre páginas.
+- A segurança (papéis, validação, concorrência) vive na API simulada: é uma demonstração, não autenticação real.
 
 ## Licença
 

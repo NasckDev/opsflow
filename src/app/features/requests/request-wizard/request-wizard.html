@@ -48,7 +48,7 @@
               @let title = form.controls.details.controls.title;
               <div class="field">
                 <label for="title">{{ 'wizard.field.title' | t }} *</label>
-                <input id="title" formControlName="title" autocomplete="off"
+                <input id="title" formControlName="title" autocomplete="off" maxlength="200"
                   [attr.aria-invalid]="error(title) ? 'true' : null"
                   [attr.aria-describedby]="error(title) ? 'title-error' : null" />
                 @if (error(title); as e) {
@@ -57,7 +57,7 @@
               </div>
               <div class="field">
                 <label for="description">{{ 'wizard.field.description' | t }}</label>
-                <textarea id="description" formControlName="description" rows="3"></textarea>
+                <textarea id="description" formControlName="description" rows="3" maxlength="2000"></textarea>
               </div>
               <div class="grid-2">
                 <div class="field">
@@ -80,7 +80,7 @@
               @let amount = form.controls.details.controls.amount;
               <div class="field">
                 <label for="amount">{{ 'wizard.field.amount' | t }} *</label>
-                <input id="amount" type="number" inputmode="decimal" min="0" step="0.01" formControlName="amount"
+                <input id="amount" type="number" inputmode="decimal" min="0" max="1000000000" step="0.01" formControlName="amount"
                   [attr.aria-invalid]="error(amount) ? 'true' : null"
                   [attr.aria-describedby]="error(amount) ? 'amount-error' : null" />
                 @if (error(amount); as e) {
@@ -104,7 +104,7 @@
               </div>
               <div class="field">
                 <label for="documents">{{ 'wizard.field.documents' | t }}</label>
-                <textarea id="documents" formControlName="documents" rows="4" placeholder="orcamento.pdf" aria-describedby="documents-hint"></textarea>
+                <textarea id="documents" formControlName="documents" rows="4" maxlength="2000" placeholder="orcamento.pdf" aria-describedby="documents-hint"></textarea>
                 <p id="documents-hint" class="hint">{{ 'wizard.docsHint' | t }}</p>
               </div>
             </fieldset>
@@ -141,14 +141,16 @@
       }
       <div class="wizard-footer">
         @if (step() > 0) {
-          <button type="button" class="btn" (click)="back()"><app-icon name="arrowLeft" /><span class="back-label">{{ 'wizard.back' | t }}</span></button>
+          <button type="button" class="btn back" (click)="back()" [attr.aria-label]="'wizard.back' | t">
+            <app-icon name="arrowLeft" /><span class="back-label">{{ 'wizard.back' | t }}</span>
+          </button>
         }
         <span class="spacer"></span>
         @if (isLastStep()) {
-          <button type="button" class="btn" [disabled]="saving()" (click)="save(false)">{{ 'wizard.saveDraft' | t }}</button>
-          <button type="submit" class="btn btn-primary" [disabled]="saving()"><app-icon name="send" />{{ 'wizard.submit' | t }}</button>
+          <button type="button" class="btn btn-ghost draft" [disabled]="saving()" (click)="save(false)">{{ 'wizard.saveDraft' | t }}</button>
+          <button type="submit" class="btn btn-primary main" [disabled]="saving()"><app-icon name="send" />{{ 'wizard.submit' | t }}</button>
         } @else {
-          <button type="submit" class="btn btn-primary">{{ 'wizard.next' | t }}<app-icon name="arrowRight" /></button>
+          <button type="submit" class="btn btn-primary main">{{ 'wizard.next' | t }}<app-icon name="arrowRight" /></button>
         }
       </div>
     </form>
