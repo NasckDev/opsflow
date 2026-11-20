@@ -1,0 +1,50 @@
+<div
+  class="palette dialog-card"
+  cdkTrapFocus
+  [cdkTrapFocusAutoCapture]="true"
+  (animationend)="focusInput()"
+>
+  <div class="search">
+    <app-icon name="search" />
+    <input
+      #field
+      type="text"
+      role="combobox"
+      aria-controls="palette-list"
+      aria-autocomplete="list"
+      [attr.aria-expanded]="results().length > 0"
+      [attr.aria-activedescendant]="results().length ? 'palette-opt-' + active() : null"
+      [attr.aria-label]="'palette.placeholder' | t"
+      [placeholder]="'palette.placeholder' | t"
+      autocomplete="off"
+      [value]="query()"
+      (input)="onInput($event)"
+      (keydown)="onKeydown($event)"
+    />
+    <kbd>Esc</kbd>
+  </div>
+
+  <ul id="palette-list" role="listbox" [attr.aria-label]="'palette.title' | t">
+    @for (command of results(); track command.id; let i = $index) {
+      <li
+        role="option"
+        tabindex="-1"
+        [id]="'palette-opt-' + i"
+        [attr.aria-selected]="i === active()"
+        [class.active]="i === active()"
+        (click)="execute(command)"
+        (keydown.enter)="execute(command)"
+        (mouseenter)="active.set(i)"
+      >
+        <app-icon [name]="command.icon" />
+        <span class="label">{{ command.label }}</span>
+        @if (command.hint) {
+          <span class="mono hint">{{ command.hint }}</span>
+        }
+        <span class="group">{{ 'palette.group.' + command.group | t }}</span>
+      </li>
+    } @empty {
+      <li class="empty" role="presentation">{{ 'palette.empty' | t }}</li>
+    }
+  </ul>
+</div>

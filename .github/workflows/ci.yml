@@ -20,6 +20,15 @@ jobs:
       - run: npm run lint
       - run: npx ng test --watch=false
       - run: npx ng build --base-href /opsflow/
+      - run: npm run build:portable
+      - run: npm run e2e
+        env:
+          CI: true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
         with:

@@ -1,0 +1,81 @@
+<section class="page" aria-labelledby="admin-title">
+  <header class="page-header">
+    <div class="titles">
+      <h1 id="admin-title" tabindex="-1">{{ 'admin.title' | t }}</h1>
+      <p class="muted">{{ 'admin.subtitle' | t }}</p>
+    </div>
+  </header>
+
+  <div class="layout">
+    <section class="panel" aria-labelledby="matrix-title">
+      <h2 id="matrix-title" class="panel-title">{{ 'admin.matrix' | t }}</h2>
+      <div class="scroll">
+        <table class="matrix" data-testid="rbac-matrix">
+          <caption class="visually-hidden">{{ 'admin.matrix' | t }}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{{ 'admin.permission' | t }}</th>
+              @for (role of roles; track role) {
+                <th scope="col" class="center" [class.current]="role === session.currentRole()">
+                  {{ 'role.' + role | t }}
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (permission of permissions; track permission) {
+              <tr>
+                <th scope="row">{{ 'perm.' + permission | t }}</th>
+                @for (role of roles; track role) {
+                  <td class="center" [class.current]="role === session.currentRole()">
+                    @if (allowed(role, permission)) {
+                      <span class="yes"><app-icon name="check" [size]="1" /></span>
+                      <span class="visually-hidden">{{ 'admin.allowed' | t }}</span>
+                    } @else {
+                      <span class="no" aria-hidden="true">–</span>
+                      <span class="visually-hidden">{{ 'admin.denied' | t }}</span>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="hint">{{ 'admin.matrixHint' | t }}</p>
+    </section>
+
+    <div class="side">
+      <section class="panel" aria-labelledby="users-title">
+        <h2 id="users-title" class="panel-title">{{ 'admin.users' | t }}</h2>
+        <ul class="users">
+          @for (user of users; track user.role) {
+            <li [class.current]="user.role === session.currentRole()">
+              <app-avatar [name]="user.name" />
+              <span class="who">
+                <strong>{{ user.name }}</strong>
+                <small class="muted">{{ 'role.' + user.role | t }}</small>
+              </span>
+              @if (user.role === session.currentRole()) {
+                <span class="chip chip-plain" data-status="approved">{{ 'admin.current' | t }}</span>
+              } @else {
+                <button type="button" class="btn" (click)="actAs(user.role)" [attr.aria-label]="('admin.actAs' | t) + ' ' + user.name">
+                  {{ 'admin.actAs' | t }}
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="panel" aria-labelledby="rules-title">
+        <h2 id="rules-title" class="panel-title">{{ 'admin.rules' | t }}</h2>
+        <ul class="rules">
+          @for (rule of rules; track rule.key) {
+            <li><app-icon [name]="rule.icon" />{{ rule.key | t }}</li>
+          }
+        </ul>
+      </section>
+    </div>
+  </div>
+</section>

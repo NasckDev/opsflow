@@ -7,8 +7,26 @@ export type TranslationParams = Readonly<Record<string, string | number>>;
 
 const STORAGE_KEY = 'opsflow.locale';
 
-export function interpolate(template: string, params: TranslationParams = {}): string {
-  return template.replace(/\{(\w+)\}/g, (match, name: string) =>
+const PLURAL_PATTERN = /\{(\w+), plural, one \{([^}]*)\} other \{([^}]*)\}\}/g;
+
+/**
+ * Substitui {nome} e formas plurais no estilo ICU simplificado:
+ * "{count, plural, one {# tarefa} other {# tarefas}}" (o "#" vira o número).
+ */
+export function interpolate(
+  template: string,
+  params: TranslationParams = {},
+): string {
+  const withPlurals = template.replace(
+    PLURAL_PATTERN,
+    (match, name: string, one: string, other: string) => {
+      if (!(name in params)) return match;
+      const count = Number(params[name]);
+      const form = count === 1 ? one : other;
+      return form.replace(/#/g, String(count));
+    },
+  );
+  return withPlurals.replace(/\{(\w+)\}/g, (match, name: string) =>
     name in params ? String(params[name]) : match,
   );
 }

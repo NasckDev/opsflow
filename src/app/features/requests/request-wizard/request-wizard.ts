@@ -12,12 +12,15 @@ import {
 } from '@angular/core';
 import { AbstractControl, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { debounceTime, finalize } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RequestsApi } from '../../../core/api/requests.api';
 import { LocalDatePipe, MoneyPipe } from '../../../core/i18n/format.pipes';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../core/i18n/translation.service';
 import { SessionStore } from '../../../core/session/session.store';
+import { readStorage, writeStorage } from '../../../core/storage';
+import { RequestsStore } from '../../../core/requests/requests.store';
 import { Icon } from '../../../shared/icon';
 import { CATEGORIES, PRIORITIES } from '../../../domain/request.model';
 import {
@@ -27,6 +30,15 @@ import {
   parseDocuments,
   toNewRequestInput,
 } from './wizard-form';
+import {
+  WIZARD_DRAFT_KEY,
+  WizardDraft,
+  WizardDraftValue,
+  isWorthSaving,
+  parseWizardDraft,
+} from './wizard-draft';
+
+const AUTOSAVE_DEBOUNCE_MS = 500;
 
 const STEPS = ['wizard.step.details', 'wizard.step.deadline', 'wizard.step.review'] as const;
 
@@ -45,6 +57,10 @@ export class RequestWizard {
   private readonly injector = inject(Injector);
   protected readonly session = inject(SessionStore);
 
+  private readonly store = inject(RequestsStore);
+  protected readonly restored = signal<WizardDraft | null>(null);
+  protected readonly savedAt = signal<string | null>(null);
+
   protected readonly steps = STEPS;
   protected readonly categories = CATEGORIES;
   protected readonly priorities = PRIORITIES;
@@ -56,6 +72,57 @@ export class RequestWizard {
   protected readonly isLastStep = computed(() => this.step() === STEPS.length - 1);
 
   private readonly stepPanel = viewChild.required<ElementRef<HTMLElement>>('stepPanel');
+
+  constructor() {
+    this.restoreDraft();
+    this.form.valueChanges
+      .pipe(debounceTime(AUTOSAVE_DEBOUNCE_MS), takeUntilDestroyed())
+      .subscribe(() => this.persistDraft());
+  }
+
+  /** Descarta o rascunho restaurado e volta ao formulário em branco. */
+  protected discardDraft(): void {
+    writeStorage(WIZARD_DRAFT_KEY, '');
+    this.restored.set(null);
+    this.savedAt.set(null);
+    this.form.reset(createWizardForm().getRawValue());
+    this.step.set(0);
+  }
+
+  private restoreDraft(): void {
+    const draft = parseWizardDraft(readStorage(WIZARD_DRAFT_KEY));
+    if (!draft) return;
+    const { value } = draft;
+    this.form.patchValue({
+      details: {
+        title: value.title,
+        description: value.description,
+        category: value.category,
+        priority: value.priority,
+        amount: value.amount,
+      },
+      deadline: { dueAt: value.dueAt, documents: value.documents },
+    });
+    this.step.set(draft.step);
+    this.restored.set(draft);
+    this.savedAt.set(draft.savedAt);
+  }
+
+  private persistDraft(): void {
+    const { details, deadline } = this.form.getRawValue();
+    const value: WizardDraftValue = { ...details, dueAt: deadline.dueAt, documents: deadline.documents };
+    if (!isWorthSaving(value)) {
+      writeStorage(WIZARD_DRAFT_KEY, '');
+      this.savedAt.set(null);
+      return;
+    }
+    const savedAt = new Date().toISOString();
+    writeStorage(
+      WIZARD_DRAFT_KEY,
+      JSON.stringify({ savedAt, step: Math.min(this.step(), 1), value }),
+    );
+    this.savedAt.set(savedAt);
+  }
 
   protected error(control: AbstractControl): FieldError | null {
     return control.touched ? firstError(control) : null;
@@ -87,6 +154,8 @@ export class RequestWizard {
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: (created) => {
+          writeStorage(WIZARD_DRAFT_KEY, '');
+          this.store.upsert(created);
           this.announcer.announce(this.i18n.translate('wizard.saved', { code: created.code }));
           void this.router.navigate(['/requests', created.id]);
         },

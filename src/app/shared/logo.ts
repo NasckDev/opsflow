@@ -16,13 +16,13 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       height: 100%;
     }
     .bg {
-      fill: var(--nui-color-accent);
+      fill: var(--ox-color-accent);
     }
     .fg {
-      stroke: var(--nui-color-text-on-accent);
+      stroke: var(--ox-color-text-on-accent);
     }
     .dot {
-      fill: var(--nui-color-text-on-accent);
+      fill: var(--ox-color-text-on-accent);
     }
   `,
   template: `

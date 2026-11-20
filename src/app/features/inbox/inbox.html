@@ -1,0 +1,165 @@
+<section class="page" aria-labelledby="inbox-title">
+  <header class="page-header">
+    <div class="titles">
+      <h1 id="inbox-title" tabindex="-1">{{ 'inbox.title' | t }}</h1>
+      <p class="muted">
+        {{ 'inbox.subtitle' | t: { role: 'role.' + role() | t, count: allTasks().length } }}
+      </p>
+    </div>
+    <button type="button" class="btn btn-ghost help-btn" (click)="retry()" [attr.aria-label]="'list.retry' | t">
+      <app-icon name="refresh" />
+    </button>
+  </header>
+
+  <div class="toolbar">
+    <div class="chips" role="group" [attr.aria-label]="'inbox.filters' | t">
+      @for (preset of presets; track preset.id) {
+        <button type="button" class="filter" [attr.aria-pressed]="isActive(preset.filter)" (click)="applyFilter(preset.filter)">
+          {{ preset.label | t }}
+        </button>
+      }
+      @for (item of saved(); track item.id) {
+        <span class="saved">
+          <button type="button" class="filter" [attr.aria-pressed]="isActive(item.filter)" (click)="applyFilter(item.filter)">
+            <app-icon name="bookmark" [size]="0.875" />{{ item.name }}
+          </button>
+          <button type="button" class="remove" [attr.aria-label]="('inbox.removeFilter' | t) + ' ' + item.name" (click)="removeFilter(item.id)">
+            <app-icon name="x" [size]="0.75" />
+          </button>
+        </span>
+      }
+    </div>
+    <div class="refine">
+      <label class="select">
+        <span class="visually-hidden">{{ 'wizard.field.priority' | t }}</span>
+        <select [value]="filter().priority" (change)="onPriority($event)">
+          <option value="any">{{ 'inbox.anyPriority' | t }}</option>
+          @for (item of priorities; track item) {
+            <option [value]="item">{{ 'priority.' + item | t }}</option>
+          }
+        </select>
+      </label>
+      <label class="select">
+        <span class="visually-hidden">{{ 'wizard.field.category' | t }}</span>
+        <select [value]="filter().category" (change)="onCategory($event)">
+          <option value="any">{{ 'inbox.anyCategory' | t }}</option>
+          @for (item of categories; track item) {
+            <option [value]="item">{{ 'category.' + item | t }}</option>
+          }
+        </select>
+      </label>
+      <label class="check">
+        <input type="checkbox" [checked]="filter().urgentOnly" (change)="patchFilter({ urgentOnly: !filter().urgentOnly })" />
+        {{ 'inbox.preset.urgent' | t }}
+      </label>
+      @if (isCustomFilter()) {
+        @if (naming()) {
+          <form class="name-form" (submit)="$event.preventDefault(); saveFilter(nameField.value)">
+            <input #nameField type="text" maxlength="24" [attr.aria-label]="'inbox.filterName' | t" [placeholder]="'inbox.filterName' | t" />
+            <button type="submit" class="btn btn-primary">{{ 'inbox.save' | t }}</button>
+          </form>
+        } @else {
+          <button type="button" class="btn" (click)="naming.set(true)">
+            <app-icon name="bookmark" />{{ 'inbox.saveFilter' | t }}
+          </button>
+        }
+      }
+    </div>
+  </div>
+
+  <div aria-live="polite" class="results">
+    @switch (status()) {
+      @case ('error') {
+        <div class="state state-error" role="alert">
+          <app-icon name="wifiOff" [size]="2" />
+          <h2>{{ 'list.error.title' | t }}</h2>
+          <p>{{ 'list.error.hint' | t }}</p>
+          <button type="button" class="btn btn-primary" (click)="retry()">
+            <app-icon name="refresh" />{{ 'list.retry' | t }}
+          </button>
+        </div>
+      }
+      @case ('loaded') {
+        @if (tasks().length === 0) {
+          <div class="state">
+            <svg class="illustration" viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="22" y="14" width="76" height="62" rx="8" />
+              <path d="M38 34h44M38 46h30" opacity=".5" />
+              <circle cx="84" cy="64" r="14" fill="var(--ox-card)" />
+              <path d="m77 64 5 5 9-10" stroke="var(--ox-color-success)" stroke-width="3" />
+            </svg>
+            <h2>{{ (allTasks().length ? 'list.empty.title' : 'inbox.empty.title') | t }}</h2>
+            <p>{{ (allTasks().length ? 'list.empty.hint' : 'inbox.empty.hint') | t }}</p>
+            @if (allTasks().length) {
+              <button type="button" class="btn" (click)="applyFilter(presets[0].filter)">{{ 'list.clear' | t }}</button>
+            }
+          </div>
+        } @else {
+          <div class="list-head">
+            <label class="check">
+              <input type="checkbox" [checked]="selected().size > 0 && selected().size === batchable().length" (change)="toggleAll($any($event.target).checked)" />
+              {{ 'inbox.selectAll' | t }}
+            </label>
+            <span class="muted" role="status">{{ 'inbox.count' | t: { count: tasks().length } }}</span>
+            <span class="hints muted"><kbd>j</kbd><kbd>k</kbd> {{ 'inbox.hintMove' | t }} · <kbd>a</kbd> {{ 'action.approve' | t }} · <kbd>r</kbd> {{ 'inbox.hintReject' | t }}</span>
+          </div>
+          <ul class="tasks" data-testid="inbox-list">
+            @for (task of tasks(); track task.request.id; let i = $index) {
+              <li class="task card" [id]="'task-' + task.request.id" [class.focused]="i === focusIndex()" [class.selected]="selected().has(task.request.id)" [attr.data-sla]="task.sla.state">
+                <div class="pick">
+                  <input type="checkbox" [checked]="selected().has(task.request.id)" [disabled]="!isBatchable(task)" [attr.title]="isBatchable(task) ? null : ('inbox.needsReview' | t)" (change)="toggle(task.request.id)" [attr.aria-label]="('inbox.select' | t) + ' ' + task.request.code" />
+                </div>
+                <div class="body">
+                  <p class="line1">
+                    <span class="mono code">{{ task.request.code }}</span>
+                    <app-status-badge [status]="task.request.status" />
+                    <app-priority [priority]="task.request.priority" />
+                  </p>
+                  <a class="title" [routerLink]="['/requests', task.request.id]">{{ task.request.title }}</a>
+                  <p class="line3 muted">
+                    <span class="person"><app-avatar [name]="task.request.requester" size="sm" />{{ task.request.requester }}</span>
+                    <span class="num">{{ task.request.amount | money }}</span>
+                    <span>{{ 'category.' + task.request.category | t }}</span>
+                  </p>
+                </div>
+                <div class="side">
+                  <app-countdown [request]="task.request" />
+                  <span class="muted due">{{ task.request.dueAt | localDate }}</span>
+                </div>
+                <div class="acts">
+                  @for (action of task.actions; track action) {
+                    <button type="button" class="btn {{ buttonClass(action) }}" [disabled]="busy()" (click)="act(task, action)">
+                      <app-icon [name]="actionIcons[action]" />{{ 'action.' + action | t }}
+                    </button>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      }
+      @default {
+        <div role="status" class="skeletons">
+          <span class="visually-hidden">{{ 'list.loading' | t }}</span>
+          @for (row of skeletons; track row) {
+            <div class="skeleton-row" aria-hidden="true">
+              <span class="skeleton" style="width: 5rem"></span>
+              <span class="skeleton" style="width: 55%"></span>
+              <span class="skeleton skeleton-hide-sm" style="width: 6rem"></span>
+            </div>
+          }
+        </div>
+      }
+    }
+  </div>
+
+  @if (selected().size > 0) {
+    <div class="batch-bar" role="region" [attr.aria-label]="'inbox.batch' | t">
+      <span>{{ 'inbox.selected' | t: { count: selected().size } }}</span>
+      <button type="button" class="btn btn-ghost" (click)="clearSelection()">{{ 'inbox.clear' | t }}</button>
+      <button type="button" class="btn btn-success" [disabled]="busy() || batchable().length === 0" (click)="approveSelected()">
+        <app-icon name="checkAll" />{{ 'inbox.approveSelected' | t: { count: batchable().length } }}
+      </button>
+    </div>
+  }
+</section>

@@ -4,11 +4,16 @@
       <h1 id="list-title" tabindex="-1">{{ 'list.title' | t }}</h1>
       <p class="muted">{{ 'list.subtitle' | t }}</p>
     </div>
-    @if (session.can('request.create')) {
-      <a class="btn btn-primary new-desktop" routerLink="/requests/new">
-        <app-icon name="plus" />{{ 'list.new' | t }}
-      </a>
-    }
+    <div class="header-actions">
+      <button type="button" class="btn" (click)="exportCsv()" [disabled]="visible().length === 0">
+        <app-icon name="download" />{{ 'list.export' | t }}
+      </button>
+      @if (session.can('request.create')) {
+        <a class="btn btn-primary new-desktop" routerLink="/requests/new">
+          <app-icon name="plus" />{{ 'list.new' | t }}
+        </a>
+      }
+    </div>
   </header>
 
   <div class="toolbar">

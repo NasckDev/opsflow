@@ -38,7 +38,7 @@ export function hueOf(name: string): number {
       font-size: 0.6875rem;
       font-weight: 600;
       letter-spacing: 0.02em;
-      color: var(--nui-color-text);
+      color: var(--ox-color-text);
       background: hsl(var(--hue) 70% 55% / 0.2);
       border: 1px solid hsl(var(--hue) 60% 55% / 0.45);
       user-select: none;

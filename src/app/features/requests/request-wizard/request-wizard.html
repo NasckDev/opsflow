@@ -28,6 +28,13 @@
     </ol>
     <div class="progress" aria-hidden="true"><span [style.width.%]="((step() + 1) / steps.length) * 100"></span></div>
 
+    @if (restored(); as draft) {
+      <p class="draft-banner" role="status">
+        <app-icon name="history" [size]="1" />
+        <span>{{ 'wizard.draftRestored' | t }}</span>
+        <button type="button" class="btn btn-ghost" (click)="discardDraft()">{{ 'wizard.draftDiscard' | t }}</button>
+      </p>
+    }
     <form [formGroup]="form" (ngSubmit)="isLastStep() ? save(true) : next()" novalidate>
       <div #stepPanel class="panel form-panel page-enter">
         @if (errorCount() > 0) {
@@ -127,6 +134,11 @@
         }
       </div>
 
+      @if (savedAt(); as stamp) {
+        <p class="autosave hint" role="status">
+          <app-icon name="check" [size]="0.875" />{{ 'wizard.autosaved' | t: { time: (stamp | localDate) } }}
+        </p>
+      }
       <div class="wizard-footer">
         @if (step() > 0) {
           <button type="button" class="btn" (click)="back()"><app-icon name="arrowLeft" /><span class="back-label">{{ 'wizard.back' | t }}</span></button>

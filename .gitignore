@@ -43,3 +43,6 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 dist-portable
+
+/test-results
+/playwright-report

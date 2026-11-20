@@ -1,7 +1,11 @@
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'requests' },
+  { path: '', pathMatch: 'full', redirectTo: 'inbox' },
+  {
+    path: 'inbox',
+    loadComponent: () => import('./features/inbox/inbox').then((m) => m.Inbox),
+  },
   {
     path: 'requests',
     loadComponent: () =>
@@ -17,5 +21,17 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/requests/request-detail/request-detail').then((m) => m.RequestDetail),
   },
-  { path: '**', redirectTo: 'requests' },
+  {
+    path: 'board',
+    loadComponent: () => import('./features/board/board').then((m) => m.Board),
+  },
+  {
+    path: 'analytics',
+    loadComponent: () => import('./features/analytics/analytics').then((m) => m.Analytics),
+  },
+  {
+    path: 'admin',
+    loadComponent: () => import('./features/admin/admin').then((m) => m.Admin),
+  },
+  { path: '**', redirectTo: 'inbox' },
 ];

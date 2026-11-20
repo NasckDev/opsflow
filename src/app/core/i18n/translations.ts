@@ -1,8 +1,10 @@
+import { featureEn, featurePt } from './translations-features';
+
 export const LOCALES = ['pt-BR', 'en'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 /** Dicionário base (pt-BR). As chaves tipam o dicionário em inglês. */
-const ptBR = {
+const basePt = {
   'app.skip': 'Pular para o conteúdo',
   'app.tagline': 'Workflow e aprovações',
   'app.role': 'Papel',
@@ -42,7 +44,7 @@ const ptBR = {
   'list.empty': 'Nenhuma solicitação encontrada para os filtros atuais.',
   'list.error': 'Não foi possível carregar as solicitações.',
   'list.retry': 'Tentar novamente',
-  'list.count': '{count} solicitação(ões)',
+  'list.count': '{count, plural, one {# solicitação} other {# solicitações}}',
   'list.due': 'Prazo',
   'list.amount': 'Valor',
   'list.requester': 'Solicitante',
@@ -62,7 +64,7 @@ const ptBR = {
   'wizard.error.minlength': 'Use ao menos {min} caracteres.',
   'wizard.error.min': 'Informe um valor maior que zero.',
   'wizard.error.pastDate': 'O prazo deve ser uma data futura.',
-  'wizard.errorsSummary': 'Corrija {count} campo(s) antes de continuar.',
+  'wizard.errorsSummary': '{count, plural, one {Corrija # campo} other {Corrija # campos}} antes de continuar.',
   'wizard.back': 'Voltar',
   'wizard.next': 'Avançar',
   'wizard.saveDraft': 'Salvar rascunho',
@@ -112,7 +114,7 @@ const ptBR = {
   'app.profile.roleHint': 'Troque o papel para ver as permissões mudarem.',
   'app.simulateErrorsHint': 'Faz as chamadas à API falharem para mostrar o tratamento de erro.',
   'app.close': 'Fechar',
-  'app.footer': 'Tokens do Nasck UI',
+  'app.footer': 'Atalhos: pressione ?',
   'list.subtitle': 'Acompanhe o andamento, o prazo e a decisão de cada pedido.',
   'list.filter': 'Filtrar por status',
   'list.allShort': 'Todas',
@@ -144,10 +146,12 @@ const ptBR = {
   'wizard.stepsLabel': 'Etapas do cadastro',
 } as const;
 
+const ptBR = { ...basePt, ...featurePt } as const;
+
 export type TranslationKey = keyof typeof ptBR;
 export type Dictionary = Readonly<Record<TranslationKey, string>>;
 
-const en: Dictionary = {
+const baseEn: Readonly<Record<keyof typeof basePt, string>> = {
   'app.skip': 'Skip to content',
   'app.tagline': 'Workflow & approvals',
   'app.role': 'Role',
@@ -187,7 +191,7 @@ const en: Dictionary = {
   'list.empty': 'No requests match the current filters.',
   'list.error': 'Could not load requests.',
   'list.retry': 'Try again',
-  'list.count': '{count} request(s)',
+  'list.count': '{count, plural, one {# request} other {# requests}}',
   'list.due': 'Due',
   'list.amount': 'Amount',
   'list.requester': 'Requester',
@@ -207,7 +211,7 @@ const en: Dictionary = {
   'wizard.error.minlength': 'Use at least {min} characters.',
   'wizard.error.min': 'Enter an amount greater than zero.',
   'wizard.error.pastDate': 'The deadline must be in the future.',
-  'wizard.errorsSummary': 'Fix {count} field(s) before continuing.',
+  'wizard.errorsSummary': '{count, plural, one {Fix # field} other {Fix # fields}} before continuing.',
   'wizard.back': 'Back',
   'wizard.next': 'Next',
   'wizard.saveDraft': 'Save draft',
@@ -257,7 +261,7 @@ const en: Dictionary = {
   'app.profile.roleHint': 'Switch the role to see permissions change.',
   'app.simulateErrorsHint': 'Makes API calls fail to showcase error handling.',
   'app.close': 'Close',
-  'app.footer': 'Nasck UI tokens',
+  'app.footer': 'Shortcuts: press ?',
   'list.subtitle': 'Track progress, deadline and decision of every request.',
   'list.filter': 'Filter by status',
   'list.allShort': 'All',
@@ -288,5 +292,7 @@ const en: Dictionary = {
   'wizard.docsHint': 'Enter the file names, one per line.',
   'wizard.stepsLabel': 'Registration steps',
 };
+
+const en: Dictionary = { ...baseEn, ...featureEn };
 
 export const DICTIONARIES: Readonly<Record<Locale, Dictionary>> = { 'pt-BR': ptBR, en };

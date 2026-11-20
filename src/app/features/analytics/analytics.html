@@ -1,0 +1,134 @@
+<section class="page" aria-labelledby="analytics-title">
+  <header class="page-header">
+    <div class="titles">
+      <h1 id="analytics-title" tabindex="-1">{{ 'analytics.title' | t }}</h1>
+      <p class="muted">{{ 'analytics.subtitle' | t }}</p>
+    </div>
+  </header>
+
+  @switch (status()) {
+    @case ('error') {
+      <div class="state state-error" role="alert">
+        <app-icon name="wifiOff" [size]="2" />
+        <h2>{{ 'list.error.title' | t }}</h2>
+        <p>{{ 'list.error.hint' | t }}</p>
+        <button type="button" class="btn btn-primary" (click)="retry()"><app-icon name="refresh" />{{ 'list.retry' | t }}</button>
+      </div>
+    }
+    @case ('loaded') {
+      <ul class="kpis">
+        <li class="kpi card">
+          <span class="kpi-icon"><app-icon name="list" /></span>
+          <span class="kpi-label">{{ 'analytics.kpi.total' | t }}</span>
+          <strong class="kpi-value num"><app-counter [value]="data().total" /></strong>
+        </li>
+        <li class="kpi card">
+          <span class="kpi-icon"><app-icon name="clock" /></span>
+          <span class="kpi-label">{{ 'analytics.kpi.open' | t }}</span>
+          <strong class="kpi-value num"><app-counter [value]="data().open" /></strong>
+        </li>
+        <li class="kpi card" data-tone="success">
+          <span class="kpi-icon"><app-icon name="checkCircle" /></span>
+          <span class="kpi-label">{{ 'analytics.kpi.compliance' | t }}</span>
+          <strong class="kpi-value num">
+            @if (compliance() === null) {
+              —
+            } @else {
+              <app-counter [value]="compliance() ?? 0" suffix="%" />
+            }
+          </strong>
+        </li>
+        <li class="kpi card" [attr.data-tone]="data().sla.openBreached > 0 ? 'danger' : null">
+          <span class="kpi-icon"><app-icon name="alert" /></span>
+          <span class="kpi-label">{{ 'analytics.kpi.breached' | t }}</span>
+          <strong class="kpi-value num"><app-counter [value]="data().sla.openBreached" /></strong>
+        </li>
+      </ul>
+
+      @if (slowestStage(); as slowest) {
+        <p class="insight">
+          <app-icon name="trendingUp" />
+          {{ 'analytics.insight' | t: { stage: slowest.label, time: slowest.display } }}
+        </p>
+      }
+
+      <div class="grid">
+        <app-chart-frame class="wide" [heading]="'analytics.throughput' | t" [caption]="'analytics.throughput.hint' | t">
+          <app-bar-chart chart [categories]="weekLabels()" [series]="throughputSeries()" [description]="'analytics.throughput.desc' | t" />
+          <table table>
+            <caption class="visually-hidden">{{ 'analytics.throughput' | t }}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{{ 'analytics.week' | t }}</th>
+                <th scope="col" class="end">{{ 'analytics.created' | t }}</th>
+                <th scope="col" class="end">{{ 'analytics.decided' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (point of data().throughput; track point.weekStart; let i = $index) {
+                <tr>
+                  <th scope="row">{{ weekLabels()[i] }}</th>
+                  <td class="end num">{{ point.created }}</td>
+                  <td class="end num">{{ point.decided }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </app-chart-frame>
+
+        <app-chart-frame [heading]="'analytics.sla' | t" [caption]="'analytics.sla.hint' | t">
+          <app-donut-chart chart [segments]="slaSegments()" [centerValue]="compliance() === null ? '—' : compliance() + '%'" [centerLabel]="'analytics.kpi.compliance' | t" [description]="'analytics.sla.desc' | t" />
+          <table table>
+            <caption class="visually-hidden">{{ 'analytics.sla' | t }}</caption>
+            <thead>
+              <tr><th scope="col">{{ 'analytics.situation' | t }}</th><th scope="col" class="end">{{ 'analytics.qty' | t }}</th></tr>
+            </thead>
+            <tbody>
+              @for (segment of slaSegments(); track segment.label) {
+                <tr><th scope="row">{{ segment.label }}</th><td class="end num">{{ segment.value }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </app-chart-frame>
+
+        <app-chart-frame [heading]="'analytics.bottleneck' | t" [caption]="'analytics.bottleneck.hint' | t">
+          <app-hbar-chart chart [items]="stages()" [description]="'analytics.bottleneck.desc' | t" />
+          <table table>
+            <caption class="visually-hidden">{{ 'analytics.bottleneck' | t }}</caption>
+            <thead>
+              <tr><th scope="col">{{ 'analytics.stage' | t }}</th><th scope="col" class="end">{{ 'analytics.avgTime' | t }}</th></tr>
+            </thead>
+            <tbody>
+              @for (item of stages(); track item.label) {
+                <tr><th scope="row">{{ item.label }}</th><td class="end num">{{ item.display }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </app-chart-frame>
+
+        <app-chart-frame [heading]="'analytics.byRole' | t" [caption]="'analytics.byRole.hint' | t">
+          <app-hbar-chart chart [items]="roles()" [description]="'analytics.byRole.desc' | t" />
+          <table table>
+            <caption class="visually-hidden">{{ 'analytics.byRole' | t }}</caption>
+            <thead>
+              <tr><th scope="col">{{ 'admin.role' | t }}</th><th scope="col" class="end">{{ 'analytics.actions' | t }}</th></tr>
+            </thead>
+            <tbody>
+              @for (item of roles(); track item.label) {
+                <tr><th scope="row">{{ item.label }}</th><td class="end num">{{ item.display }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </app-chart-frame>
+      </div>
+    }
+    @default {
+      <div role="status" class="skeleton-grid">
+        <span class="visually-hidden">{{ 'list.loading' | t }}</span>
+        @for (item of skeletons; track item) {
+          <span class="skeleton sk" aria-hidden="true"></span>
+        }
+      </div>
+    }
+  }
+</section>

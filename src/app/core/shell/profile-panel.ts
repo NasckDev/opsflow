@@ -1,4 +1,5 @@
 import { CdkTrapFocus } from '@angular/cdk/a11y';
+import { RouterLink } from '@angular/router';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ROLES, Role } from '../../domain/request.model';
 import { Avatar } from '../../shared/avatar';
@@ -8,23 +9,24 @@ import { TranslatePipe } from '../i18n/translate.pipe';
 import { TranslationService } from '../i18n/translation.service';
 import { LOCALES, Locale } from '../i18n/translations';
 import { DEMO_USERS, SessionStore } from '../session/session.store';
-import { ThemeService } from '../theme/theme.service';
-import { ProfileMenu } from './profile-menu';
+import { Density, ThemeService } from '../theme/theme.service';
+import { Popover } from './popover';
 
 @Component({
   selector: 'app-profile-panel',
-  imports: [CdkTrapFocus, TranslatePipe, Avatar, Icon],
+  imports: [CdkTrapFocus, RouterLink, TranslatePipe, Avatar, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './profile-panel.html',
   styleUrl: './profile-panel.scss',
 })
 export class ProfilePanel {
-  private readonly menu = inject(ProfileMenu);
+  private readonly popover = inject(Popover);
   private readonly backend = inject(MockBackend);
   protected readonly session = inject(SessionStore);
   protected readonly i18n = inject(TranslationService);
   protected readonly theme = inject(ThemeService);
   protected readonly roles = ROLES;
+  protected readonly densities: readonly Density[] = ['compact', 'comfortable'];
   protected readonly locales = LOCALES;
   protected readonly users = DEMO_USERS;
   protected readonly failures = this.backend.failuresEnabled;
@@ -46,6 +48,6 @@ export class ProfilePanel {
   }
 
   protected close(): void {
-    this.menu.close();
+    this.popover.close();
   }
 }

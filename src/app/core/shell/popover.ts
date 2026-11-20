@@ -1,18 +1,17 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
-import { Injectable, Injector, inject, signal } from '@angular/core';
+import { Injectable, Injector, Type, inject, signal } from '@angular/core';
 import { Subscription, filter } from 'rxjs';
-import { ProfilePanel } from './profile-panel';
 
 const MOBILE_QUERY = '(max-width: 959px)';
 
 /**
- * Abre o painel "Perfil de demonstração" como popover ancorado (desktop) ou
- * bottom sheet (celular). Esc e clique fora fecham e o foco volta ao gatilho.
+ * Painéis ancorados no topo (perfil, notificações): popover no desktop e
+ * bottom sheet no celular. Esc e clique fora fecham e o foco volta ao gatilho.
  */
 @Injectable({ providedIn: 'root' })
-export class ProfileMenu {
+export class Popover {
   private readonly overlay = inject(Overlay);
   private readonly breakpoints = inject(BreakpointObserver);
   private readonly injector = inject(Injector);
@@ -20,36 +19,35 @@ export class ProfileMenu {
   private overlayRef: OverlayRef | null = null;
   private trigger: HTMLElement | null = null;
   private subscriptions = new Subscription();
-  private readonly opened = signal(false);
+  private readonly activeKey = signal<string | null>(null);
 
-  readonly isOpen = this.opened.asReadonly();
+  /** Chave do painel aberto (ou null), para `aria-expanded` nos gatilhos. */
+  readonly openKey = this.activeKey.asReadonly();
 
-  toggle(trigger: HTMLElement): void {
-    if (this.overlayRef) {
-      this.close();
-    } else {
-      this.open(trigger);
-    }
+  toggle(trigger: HTMLElement, key: string, component: Type<unknown>): void {
+    const wasOpen = this.activeKey() === key;
+    this.close(!wasOpen ? false : true);
+    if (!wasOpen) this.open(trigger, key, component);
   }
 
-  close(): void {
+  close(restoreFocus = true): void {
     if (!this.overlayRef) return;
     this.subscriptions.unsubscribe();
     this.overlayRef.dispose();
     this.overlayRef = null;
-    this.opened.set(false);
-    this.trigger?.focus();
+    this.activeKey.set(null);
+    if (restoreFocus) this.trigger?.focus();
     this.trigger = null;
   }
 
-  private open(trigger: HTMLElement): void {
+  private open(trigger: HTMLElement, key: string, component: Type<unknown>): void {
     const mobile = this.breakpoints.isMatched(MOBILE_QUERY);
     this.trigger = trigger;
     this.subscriptions = new Subscription();
-    this.overlayRef = this.overlay.create({
+    const overlayRef = this.overlay.create({
       hasBackdrop: true,
       backdropClass: mobile ? 'cdk-overlay-dark-backdrop' : 'cdk-overlay-transparent-backdrop',
-      panelClass: mobile ? 'profile-sheet' : 'profile-popover',
+      panelClass: mobile ? 'popover-sheet' : 'popover-floating',
       scrollStrategy: this.overlay.scrollStrategies.block(),
       positionStrategy: mobile
         ? this.overlay.position().global().bottom('0').centerHorizontally()
@@ -62,9 +60,10 @@ export class ProfileMenu {
             ])
             .withPush(true),
     });
-    this.subscriptions.add(this.overlayRef.backdropClick().subscribe(() => this.close()));
+    this.overlayRef = overlayRef;
+    this.subscriptions.add(overlayRef.backdropClick().subscribe(() => this.close()));
     this.subscriptions.add(
-      this.overlayRef
+      overlayRef
         .keydownEvents()
         .pipe(filter((event) => event.key === 'Escape'))
         .subscribe((event) => {
@@ -72,7 +71,7 @@ export class ProfileMenu {
           this.close();
         }),
     );
-    this.overlayRef.attach(new ComponentPortal(ProfilePanel, null, this.injector));
-    this.opened.set(true);
+    overlayRef.attach(new ComponentPortal(component, null, this.injector));
+    this.activeKey.set(key);
   }
 }

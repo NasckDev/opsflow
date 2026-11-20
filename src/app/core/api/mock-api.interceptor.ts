@@ -8,13 +8,15 @@ import {
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, delay, dematerialize, materialize, of, throwError } from 'rxjs';
 import { MockDatabase, RequestFilter } from './mock-database';
-import { CreateRequestBody, TransitionBody } from './requests.api';
+import { CommentBody, CreateRequestBody, DocumentBody, TransitionBody } from './requests.api';
 import { RequestStatus } from '../../domain/request.model';
 
 export const API_PREFIX = 'api/requests';
 const LATENCY_MS = 450;
 const ITEM_PATTERN = /^api\/requests\/([\w-]+)$/;
 const TRANSITION_PATTERN = /^api\/requests\/([\w-]+)\/transitions$/;
+const COMMENTS_PATTERN = /^api\/requests\/([\w-]+)\/comments$/;
+const DOCUMENTS_PATTERN = /^api\/requests\/([\w-]+)\/documents$/;
 
 /** Estado do backend simulado (banco + chave de falhas), compartilhado pelo app. */
 @Injectable({ providedIn: 'root' })
@@ -61,6 +63,23 @@ function transitionRequest(id: string, body: TransitionBody, db: MockDatabase) {
   return reject(status, result.error);
 }
 
+function listComments(id: string, db: MockDatabase) {
+  const comments = db.listComments(id);
+  return comments ? respond(comments) : reject(404, 'not_found');
+}
+
+function postComment(id: string, body: CommentBody, db: MockDatabase) {
+  const result = db.addComment(id, body.actor, body.body, new Date());
+  if (result.ok) return respond(result.value, 201);
+  return reject(result.error === 'not_found' ? 404 : 422, result.error);
+}
+
+function postDocument(id: string, body: DocumentBody, db: MockDatabase) {
+  const result = db.addDocument(id, body.name);
+  if (result.ok) return respond(result.value, 201);
+  return reject(result.error === 'not_found' ? 404 : 422, result.error);
+}
+
 function route(request: HttpRequest<unknown>, db: MockDatabase): Observable<HttpEvent<unknown>> {
   const url = request.url;
   const transition = TRANSITION_PATTERN.exec(url);
@@ -71,6 +90,15 @@ function route(request: HttpRequest<unknown>, db: MockDatabase): Observable<Http
   }
   if (request.method === 'POST' && transition) {
     return transitionRequest(transition[1], request.body as TransitionBody, db);
+  }
+  const comments = COMMENTS_PATTERN.exec(url);
+  const documents = DOCUMENTS_PATTERN.exec(url);
+  if (request.method === 'GET' && comments) return listComments(comments[1], db);
+  if (request.method === 'POST' && comments) {
+    return postComment(comments[1], request.body as CommentBody, db);
+  }
+  if (request.method === 'POST' && documents) {
+    return postDocument(documents[1], request.body as DocumentBody, db);
   }
   if (request.method === 'GET' && item) return getRequest(item[1], db);
   return reject(404, 'not_found');

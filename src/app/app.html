@@ -8,7 +8,7 @@
 
 <div class="shell">
   <aside class="sidebar">
-    <a class="brand" routerLink="/requests">
+    <a class="brand" routerLink="/inbox">
       <app-logo />
       <span class="brand-text">
         <strong>OpsFlow</strong>
@@ -18,22 +18,38 @@
 
     <nav [attr.aria-label]="'app.nav.main' | t">
       <p class="nav-label">{{ 'app.nav.workspace' | t }}</p>
-      <a class="nav-item" routerLink="/requests" [class.active]="onList()" [attr.aria-current]="onList() ? 'page' : null">
+      <a class="nav-item" routerLink="/inbox" [class.active]="section() === 'inbox'" [attr.aria-current]="section() === 'inbox' ? 'page' : null">
+        <app-icon name="inbox" />{{ 'app.nav.inbox' | t }}
+        @if (inboxCount() > 0) {
+          <span class="count-pill">{{ inboxCount() }}</span>
+        }
+      </a>
+      <a class="nav-item" routerLink="/requests" [class.active]="section() === 'requests'" [attr.aria-current]="section() === 'requests' ? 'page' : null">
         <app-icon name="list" />{{ 'app.nav.requests' | t }}
       </a>
-      @if (session.can('request.create')) {
-        <a class="nav-item" routerLink="/requests/new" [class.active]="onNew()" [attr.aria-current]="onNew() ? 'page' : null">
-          <app-icon name="plusCircle" />{{ 'app.nav.new' | t }}
-        </a>
-      }
+      <a class="nav-item" routerLink="/board" [class.active]="section() === 'board'" [attr.aria-current]="section() === 'board' ? 'page' : null">
+        <app-icon name="board" />{{ 'app.nav.board' | t }}
+      </a>
+      <a class="nav-item" routerLink="/analytics" [class.active]="section() === 'analytics'" [attr.aria-current]="section() === 'analytics' ? 'page' : null">
+        <app-icon name="chart" />{{ 'app.nav.analytics' | t }}
+      </a>
+      <p class="nav-label second">{{ 'app.nav.manage' | t }}</p>
+      <a class="nav-item" routerLink="/admin" [class.active]="section() === 'admin'" [attr.aria-current]="section() === 'admin' ? 'page' : null">
+        <app-icon name="shield" />{{ 'app.nav.admin' | t }}
+      </a>
     </nav>
 
+    @if (session.can('request.create')) {
+      <a class="btn btn-primary new-cta" routerLink="/requests/new">
+        <app-icon name="plus" />{{ 'app.nav.new' | t }}
+      </a>
+    }
     <p class="sidebar-foot">{{ 'app.footer' | t }}</p>
   </aside>
 
   <div class="workspace">
     <header class="topbar">
-      <a class="brand brand-mobile" routerLink="/requests" [attr.aria-label]="'OpsFlow'">
+      <a class="brand brand-mobile" routerLink="/inbox" aria-label="OpsFlow">
         <app-logo />
         <strong>OpsFlow</strong>
       </a>
@@ -42,6 +58,7 @@
         <app-icon name="search" />
         <input
           type="search"
+          data-global-search
           [attr.aria-label]="'app.search' | t"
           [placeholder]="'app.searchPlaceholder' | t"
           [value]="search.query()"
@@ -54,22 +71,56 @@
         }
       </div>
 
+      <div class="actions">
+        <button type="button" class="palette-trigger" (click)="openPalette()">
+          <app-icon name="command" [size]="1" />
+          <span>{{ 'palette.open' | t }}</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button
+          type="button"
+          class="icon-btn"
+          aria-haspopup="dialog"
+          [attr.aria-expanded]="popover.openKey() === 'notifications'"
+                    (click)="toggleNotifications($event)"
+        >
+          <app-icon name="bell" [size]="1.25" />
+          <span class="visually-hidden">{{ 'notifications.title' | t }}</span>
+          @if (notificationCount() > 0) {
+            <span class="dot">{{ notificationCount() }}</span>
+          }
+        </button>
+        <button
+          type="button"
+          class="profile-trigger"
+          aria-haspopup="dialog"
+          [attr.aria-expanded]="popover.openKey() === 'profile'"
+                    (click)="toggleProfile($event)"
+        >
+          <app-avatar [name]="session.actor().name" />
+          <span class="visually-hidden">{{ 'app.profile' | t }}:</span>
+          <span class="profile-text">
+            <strong>{{ session.actor().name }}</strong>
+            <small>{{ 'role.' + session.currentRole() | t }}</small>
+          </span>
+          <app-icon class="chev" name="chevronDown" [size]="1" />
+        </button>
+      </div>
+
+      <span class="role-pill"><app-icon name="user" [size]="0.875" />{{ 'role.' + session.currentRole() | t }}</span>
       <button
         type="button"
-        class="profile-trigger"
+        class="icon-btn bell-mobile"
         aria-haspopup="dialog"
-        [attr.aria-expanded]="profile.isOpen()"
-        [attr.aria-label]="('app.profile' | t) + ': ' + session.actor().name"
-        (click)="toggleProfile($event)"
+        [attr.aria-expanded]="popover.openKey() === 'notifications'"
+                (click)="toggleNotifications($event)"
       >
-        <app-avatar [name]="session.actor().name" />
-        <span class="profile-text">
-          <strong>{{ session.actor().name }}</strong>
-          <small>{{ 'role.' + session.currentRole() | t }}</small>
-        </span>
-        <app-icon class="chev" name="chevronDown" [size]="1" />
+        <app-icon name="bell" [size]="1.25" />
+        <span class="visually-hidden">{{ 'notifications.title' | t }}</span>
+        @if (notificationCount() > 0) {
+          <span class="dot">{{ notificationCount() }}</span>
+        }
       </button>
-      <span class="role-pill"><app-icon name="user" [size]="0.875" />{{ 'role.' + session.currentRole() | t }}</span>
     </header>
 
     <main id="main" #main tabindex="-1">
@@ -78,22 +129,35 @@
   </div>
 
   <nav class="bottomnav" [attr.aria-label]="'app.nav.main' | t">
-    <a class="tab" routerLink="/requests" [class.active]="onList()" [attr.aria-current]="onList() ? 'page' : null">
+    <a class="tab" routerLink="/inbox" [class.active]="section() === 'inbox'" [attr.aria-current]="section() === 'inbox' ? 'page' : null">
+      <span class="tab-icon">
+        <app-icon name="inbox" [size]="1.375" />
+        @if (inboxCount() > 0) {
+          <span class="dot" aria-hidden="true">{{ inboxCount() }}</span>
+        }
+      </span>
+      <span>{{ 'app.nav.inboxShort' | t }}</span>
+    </a>
+    <a class="tab" routerLink="/requests" [class.active]="section() === 'requests'" [attr.aria-current]="section() === 'requests' ? 'page' : null">
       <app-icon name="list" [size]="1.375" />
       <span>{{ 'app.nav.requests' | t }}</span>
     </a>
     @if (session.can('request.create')) {
-      <a class="tab" routerLink="/requests/new" [class.active]="onNew()" [attr.aria-current]="onNew() ? 'page' : null">
+      <a class="tab" routerLink="/requests/new" [class.active]="section() === 'new'" [attr.aria-current]="section() === 'new' ? 'page' : null">
         <app-icon name="plusCircle" [size]="1.375" />
-        <span>{{ 'app.nav.new' | t }}</span>
+        <span>{{ 'app.nav.newShort' | t }}</span>
       </a>
     }
+    <a class="tab" routerLink="/analytics" [class.active]="section() === 'analytics'" [attr.aria-current]="section() === 'analytics' ? 'page' : null">
+      <app-icon name="chart" [size]="1.375" />
+      <span>{{ 'app.nav.analytics' | t }}</span>
+    </a>
     <button
       type="button"
       class="tab"
       aria-haspopup="dialog"
-      [class.active]="profile.isOpen()"
-      [attr.aria-expanded]="profile.isOpen()"
+      [class.active]="popover.openKey() === 'profile'"
+      [attr.aria-expanded]="popover.openKey() === 'profile'"
       (click)="toggleProfile($event)"
     >
       <app-avatar [name]="session.actor().name" size="sm" />
@@ -101,3 +165,5 @@
     </button>
   </nav>
 </div>
+
+<app-toasts />

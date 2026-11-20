@@ -15,7 +15,10 @@ import {
 import { RequestsApi } from '../../../core/api/requests.api';
 import { MoneyPipe } from '../../../core/i18n/format.pipes';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../core/i18n/translation.service';
 import { TranslationKey } from '../../../core/i18n/translations';
+import { ToastService } from '../../../core/ui/toast.service';
+import { requestsToCsv } from '../../../domain/export';
 import { SearchStore } from '../../../core/search/search.store';
 import { SessionStore } from '../../../core/session/session.store';
 import { REQUEST_STATUSES, RequestStatus, WorkflowRequest } from '../../../domain/request.model';
@@ -70,6 +73,8 @@ export class RequestList {
   private readonly api = inject(RequestsApi);
   protected readonly session = inject(SessionStore);
   protected readonly search = inject(SearchStore);
+  private readonly i18n = inject(TranslationService);
+  private readonly toast = inject(ToastService);
   protected readonly statuses = REQUEST_STATUSES;
   protected readonly columns = COLUMNS;
   protected readonly skeletonRows = SKELETON_ROWS;
@@ -122,6 +127,34 @@ export class RequestList {
     const current = this.sort();
     if (current?.key !== key) return 'sortNone';
     return current.direction === 'asc' ? 'sortAsc' : 'sortDesc';
+  }
+
+  /** Baixa a lista que está na tela (já filtrada e ordenada) como CSV para planilha. */
+  protected exportCsv(): void {
+    const t = (key: string) => this.i18n.translateDynamic(key);
+    const csv = requestsToCsv(this.visible(), {
+      headers: [
+        t('list.col.code'),
+        t('list.col.title'),
+        t('list.col.requester'),
+        t('list.col.status'),
+        t('list.col.priority'),
+        t('wizard.field.category'),
+        t('list.col.amount'),
+        t('list.due'),
+      ],
+      status: (value) => t(`status.${value}`),
+      priority: (value) => t(`priority.${value}`),
+      category: (value) => t(`category.${value}`),
+    });
+    const blob = new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'opsflow-solicitacoes.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+    this.toast.show(t('list.exported'), 'success');
   }
 
   protected clearFilters(): void {

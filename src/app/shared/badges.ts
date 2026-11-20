@@ -33,16 +33,16 @@ const PRIORITY_ICONS: Readonly<Record<Priority, IconName>> = {
       display: inline-flex;
       align-items: center;
       gap: 0.375rem;
-      color: var(--nui-color-text);
+      color: var(--ox-color-text);
     }
     :host([data-priority='high']) app-icon {
-      color: var(--nui-color-danger);
+      color: var(--ox-color-danger);
     }
     :host([data-priority='medium']) app-icon {
-      color: var(--nui-color-warning);
+      color: var(--ox-color-warning);
     }
     :host([data-priority='low']) app-icon {
-      color: var(--nui-color-text-muted);
+      color: var(--ox-color-text-muted);
     }
   `,
   template: `<app-icon [name]="icon()" />{{ 'priority.' + priority() | t }}`,
@@ -60,32 +60,32 @@ export class PriorityBadge {
   host: { '[attr.data-sla]': 'sla().state', '[class.large]': 'large()' },
   styles: `
     :host {
-      --sla-color: var(--nui-color-success);
+      --sla-color: var(--ox-color-success);
       display: grid;
       gap: 0.3125rem;
       min-width: 7rem;
     }
     :host([data-sla='at_risk']) {
-      --sla-color: var(--nui-color-warning);
+      --sla-color: var(--ox-color-warning);
     }
     :host([data-sla='breached']) {
-      --sla-color: var(--nui-color-danger);
+      --sla-color: var(--ox-color-danger);
     }
     :host([data-sla='closed']) {
-      --sla-color: var(--nui-color-text-muted);
+      --sla-color: var(--ox-color-text-muted);
     }
     .label {
       display: inline-flex;
       align-items: center;
       gap: 0.3125rem;
-      font-size: var(--nui-font-size-xs);
-      font-weight: var(--nui-font-weight-semibold);
+      font-size: var(--ox-font-size-xs);
+      font-weight: var(--ox-font-weight-semibold);
       color: var(--sla-color);
       white-space: nowrap;
     }
     .bar {
       height: 0.25rem;
-      border-radius: var(--nui-radius-full);
+      border-radius: var(--ox-radius-full);
       background: var(--ox-neutral-surface);
       overflow: hidden;
     }
@@ -100,7 +100,7 @@ export class PriorityBadge {
       min-width: 12rem;
     }
     :host(.large) .label {
-      font-size: var(--nui-font-size-sm);
+      font-size: var(--ox-font-size-sm);
     }
     :host(.large) .bar {
       height: 0.375rem;

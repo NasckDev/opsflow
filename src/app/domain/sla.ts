@@ -51,3 +51,15 @@ export function formatHours(hours: number): string {
   const rest = total % 24;
   return rest === 0 ? `${days}d` : `${days}d ${rest}h`;
 }
+
+const MS_PER_MINUTE = 60_000;
+
+/** Contagem regressiva legível: "42m", "5h 12m" ou "3d 4h" (sempre positiva). */
+export function formatCountdown(milliseconds: number): string {
+  const minutes = Math.floor(Math.abs(milliseconds) / MS_PER_MINUTE);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ${String(minutes % 60).padStart(2, '0')}m`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ${hours % 24}h`;
+}

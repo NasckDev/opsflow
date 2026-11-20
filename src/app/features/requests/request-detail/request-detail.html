@@ -22,12 +22,14 @@
     }
     @case ('not_found') {
       <div class="state" role="alert">
+        <app-icon name="search" [size]="2" />
         <h2>{{ 'detail.notFound' | t }}</h2>
         <a class="btn" routerLink="/requests"><app-icon name="arrowLeft" />{{ 'detail.back' | t }}</a>
       </div>
     }
     @case ('error') {
       <div class="state state-error" role="alert">
+        <app-icon name="wifiOff" [size]="2" />
         <h2>{{ 'list.error.title' | t }}</h2>
         <p>{{ 'list.error.hint' | t }}</p>
         <button type="button" class="btn btn-primary" (click)="retry()"><app-icon name="refresh" />{{ 'list.retry' | t }}</button>
@@ -62,26 +64,16 @@
       </dl>
     </header>
 
+    <section class="panel chain" aria-labelledby="chain-title">
+      <h2 id="chain-title" class="panel-title">{{ 'chain.title' | t }}</h2>
+      <app-approval-chain [steps]="chain()" />
+    </section>
+
     @if (actions().length > 0) {
       <section class="decision card" aria-labelledby="actions-title">
         <div class="decision-text">
           <h2 id="actions-title">{{ 'detail.decision' | t }}</h2>
-          <div class="field">
-            <label for="comment">{{ 'detail.comment' | t }}</label>
-            <textarea
-              #commentField
-              id="comment"
-              rows="2"
-              [value]="comment()"
-              (input)="onComment($event)"
-              aria-describedby="comment-hint"
-              [attr.aria-invalid]="actionError() ? 'true' : null"
-            ></textarea>
-            <p id="comment-hint" class="hint">{{ 'detail.commentHint' | t }}</p>
-            @if (actionError(); as message) {
-              <p class="field-error" role="alert">{{ message }}</p>
-            }
-          </div>
+          <p class="hint">{{ 'detail.decisionHint' | t }}</p>
         </div>
         <div class="actions">
           @for (action of actions(); track action) {
@@ -96,48 +88,99 @@
     }
 
     <div class="layout">
-      <section class="panel" aria-labelledby="info-title">
-        <h2 id="info-title" class="panel-title">{{ 'detail.info' | t }}</h2>
-        <p class="description">{{ request.description || ('detail.noDescription' | t) }}</p>
-        <dl class="fields">
-          <div>
-            <dt>{{ 'list.amount' | t }}</dt>
-            <dd class="amount num">{{ request.amount | money }}</dd>
+      <div class="column">
+        <section class="panel" aria-labelledby="info-title">
+          <h2 id="info-title" class="panel-title">{{ 'detail.info' | t }}</h2>
+          <p class="description">{{ request.description || ('detail.noDescription' | t) }}</p>
+          <dl class="fields">
+            <div>
+              <dt>{{ 'list.amount' | t }}</dt>
+              <dd class="amount num">{{ request.amount | money }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'wizard.field.priority' | t }}</dt>
+              <dd><app-priority [priority]="request.priority" /></dd>
+            </div>
+            <div>
+              <dt>{{ 'list.due' | t }}</dt>
+              <dd>{{ request.dueAt | localDate }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'list.requester' | t }}</dt>
+              <dd class="person"><app-avatar [name]="request.requester" size="sm" />{{ request.requester }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'wizard.field.category' | t }}</dt>
+              <dd>{{ 'category.' + request.category | t }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'detail.updatedAt' | t }}</dt>
+              <dd>{{ request.updatedAt | localDate }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="panel" aria-labelledby="docs-title">
+          <div class="panel-head">
+            <h2 id="docs-title">{{ 'detail.documents' | t }}</h2>
+            @if (canAttach()) {
+              <label class="btn attach">
+                <app-icon name="upload" />{{ 'detail.attach' | t }}
+                <input type="file" multiple class="visually-hidden" (change)="onFiles(request, $event)" />
+              </label>
+            }
           </div>
-          <div>
-            <dt>{{ 'wizard.field.priority' | t }}</dt>
-            <dd><app-priority [priority]="request.priority" /></dd>
-          </div>
-          <div>
-            <dt>{{ 'list.due' | t }}</dt>
-            <dd>{{ request.dueAt | localDate }}</dd>
-          </div>
-          <div>
-            <dt>{{ 'list.requester' | t }}</dt>
-            <dd class="person"><app-avatar [name]="request.requester" size="sm" />{{ request.requester }}</dd>
-          </div>
-          <div>
-            <dt>{{ 'wizard.field.category' | t }}</dt>
-            <dd>{{ 'category.' + request.category | t }}</dd>
-          </div>
-          <div>
-            <dt>{{ 'detail.updatedAt' | t }}</dt>
-            <dd>{{ request.updatedAt | localDate }}</dd>
-          </div>
-        </dl>
-        <h3 class="sub-title">{{ 'detail.documents' | t }}</h3>
-        @if (request.documents.length) {
-          <ul class="docs">
-            @for (doc of request.documents; track doc) {
-              <li><app-icon name="file" />{{ doc }}</li>
+          @if (request.documents.length) {
+            <ul class="docs">
+              @for (doc of request.documents; track doc) {
+                <li><app-icon name="paperclip" />{{ doc }}</li>
+              }
+            </ul>
+            <p class="hint">{{ 'detail.attachHint' | t }}</p>
+          } @else {
+            <p class="muted">{{ 'detail.noDocuments' | t }}</p>
+          }
+        </section>
+
+        <section class="panel" aria-labelledby="comments-title">
+          <h2 id="comments-title" class="panel-title">
+            {{ 'detail.comments' | t }}<span class="count">{{ thread().length }}</span>
+          </h2>
+          <ul class="thread" data-testid="comment-thread">
+            @for (comment of thread(); track comment.id) {
+              <li>
+                <app-avatar [name]="comment.author" />
+                <div class="bubble">
+                  <p class="who">
+                    <strong>{{ comment.author }}</strong>
+                    <span class="muted">{{ 'role.' + comment.role | t }} · <time [attr.datetime]="comment.at">{{ comment.at | localDate }}</time></span>
+                  </p>
+                  <p class="body">{{ comment.body }}</p>
+                </div>
+              </li>
+            } @empty {
+              <li class="muted none">{{ 'detail.noComments' | t }}</li>
             }
           </ul>
-        } @else {
-          <p class="muted">{{ 'detail.noDocuments' | t }}</p>
-        }
-      </section>
+          <form class="composer" (submit)="$event.preventDefault(); postComment(request)">
+            <div class="field">
+              <label for="new-comment">{{ 'detail.addComment' | t }}</label>
+              <textarea id="new-comment" rows="2" [value]="draftComment()" (input)="onDraft($event)"
+                [attr.aria-invalid]="commentError() ? 'true' : null" aria-describedby="comment-error"></textarea>
+              <p id="comment-error" class="field-error" role="alert">
+                @if (commentError(); as code) {
+                  {{ 'error.' + code | t }}
+                }
+              </p>
+            </div>
+            <button type="submit" class="btn btn-primary" [disabled]="posting()">
+              <app-icon name="comment" />{{ 'detail.send' | t }}
+            </button>
+          </form>
+        </section>
+      </div>
 
-      <section class="panel" aria-labelledby="timeline-title">
+      <section class="panel timeline-panel" aria-labelledby="timeline-title">
         <h2 id="timeline-title" class="panel-title">{{ 'detail.timeline' | t }}</h2>
         @if (session.can('audit.view')) {
           <ol class="timeline" data-testid="audit-timeline">

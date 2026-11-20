@@ -1,0 +1,96 @@
+<section class="page" aria-labelledby="board-title">
+  <header class="page-header">
+    <div class="titles">
+      <h1 id="board-title" tabindex="-1">{{ 'board.title' | t }}</h1>
+      <p class="muted">{{ 'board.subtitle' | t }}</p>
+    </div>
+  </header>
+
+  @switch (status()) {
+    @case ('error') {
+      <div class="state state-error" role="alert">
+        <app-icon name="wifiOff" [size]="2" />
+        <h2>{{ 'list.error.title' | t }}</h2>
+        <p>{{ 'list.error.hint' | t }}</p>
+        <button type="button" class="btn btn-primary" (click)="retry()"><app-icon name="refresh" />{{ 'list.retry' | t }}</button>
+      </div>
+    }
+    @case ('loaded') {
+      <div class="board" cdkDropListGroup data-testid="board">
+        @for (column of columns(); track column.status) {
+          <section
+            class="column"
+            [attr.data-status]="column.status"
+            [class.accepts]="accepts(column.status) === true"
+            [class.rejects]="accepts(column.status) === false"
+            [attr.aria-labelledby]="'col-' + column.status"
+          >
+            <header>
+              <h2 id="col-{{ column.status }}"><span class="swatch" aria-hidden="true"></span>{{ 'status.' + column.status | t }}</h2>
+              <span class="count num">{{ column.items.length }}</span>
+            </header>
+            <div
+              class="drop"
+              cdkDropList
+              [cdkDropListData]="column.status"
+              [cdkDropListSortingDisabled]="true"
+              (cdkDropListDropped)="onDrop($event)"
+              [attr.aria-label]="'status.' + column.status | t"
+            >
+              @for (request of column.items; track request.id) {
+                <article class="card-item card" cdkDrag [cdkDragData]="request" (cdkDragStarted)="onDragStart($event)" (cdkDragEnded)="onDragEnd()">
+                  <div class="drag-preview" *cdkDragPreview [attr.data-status]="request.status">
+                    <span class="mono">{{ request.code }}</span> {{ request.title }}
+                  </div>
+                  <p class="top">
+                    <span class="mono code">{{ request.code }}</span>
+                    <app-icon class="grip" name="grip" [size]="1" />
+                  </p>
+                  <a class="title" [routerLink]="['/requests', request.id]">{{ request.title }}</a>
+                  <p class="meta muted">
+                    <span class="person"><app-avatar [name]="request.requester" size="sm" />{{ request.requester }}</span>
+                    <span class="num">{{ request.amount | money }}</span>
+                  </p>
+                  <p class="foot">
+                    <app-priority [priority]="request.priority" />
+                    <app-countdown [request]="request" />
+                  </p>
+                  @if (targets(request).length > 0) {
+                    <label class="move">
+                      <span class="visually-hidden">{{ 'board.moveTo' | t }} {{ request.code }}</span>
+                      <select (change)="onMoveSelect(request, $event)">
+                        <option value="">{{ 'board.moveTo' | t }}…</option>
+                        @for (target of targets(request); track target) {
+                          <option [value]="target">{{ 'status.' + target | t }}</option>
+                        }
+                      </select>
+                    </label>
+                  }
+                </article>
+              } @empty {
+                <p class="empty muted">{{ 'board.emptyColumn' | t }}</p>
+              }
+            </div>
+          </section>
+        }
+      </div>
+      <p class="hint legend">
+        <app-icon name="info" [size]="0.875" />{{ 'board.hint' | t }}
+      </p>
+    }
+    @default {
+      <div class="board" role="status">
+        <span class="visually-hidden">{{ 'list.loading' | t }}</span>
+        @for (col of skeletons; track col) {
+          <div class="column" aria-hidden="true">
+            <header><span class="skeleton" style="width: 6rem"></span></header>
+            <div class="drop">
+              <span class="skeleton sk-card"></span>
+              <span class="skeleton sk-card"></span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</section>

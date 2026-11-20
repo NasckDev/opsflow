@@ -1,33 +1,27 @@
-import { LiveAnnouncer } from '@angular/cdk/a11y';
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   computed,
   inject,
   input,
   signal,
-  viewChild,
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import {
-  Observable,
-  catchError,
-  combineLatest,
-  finalize,
-  map,
-  of,
-  startWith,
-  switchMap,
-} from 'rxjs';
+import { Observable, catchError, combineLatest, map, of, startWith, switchMap, tap } from 'rxjs';
 import { RequestsApi, apiErrorCode } from '../../../core/api/requests.api';
 import { LocalDatePipe, MoneyPipe } from '../../../core/i18n/format.pipes';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../core/i18n/translation.service';
+import { RequestsStore } from '../../../core/requests/requests.store';
+import { TransitionService } from '../../../core/requests/transition.service';
 import { SessionStore } from '../../../core/session/session.store';
+import { ToastService } from '../../../core/ui/toast.service';
+import { buildApprovalChain } from '../../../domain/approval-chain';
+import { RequestComment, validateCommentBody } from '../../../domain/comments';
 import { AuditAction, WorkflowAction, WorkflowRequest } from '../../../domain/request.model';
-import { availableActions, checkTransition } from '../../../domain/workflow-machine';
+import { availableActions } from '../../../domain/workflow-machine';
+import { ApprovalChain } from '../../../shared/approval-chain';
 import { Avatar } from '../../../shared/avatar';
 import { PriorityBadge, SlaMeter, StatusBadge } from '../../../shared/badges';
 import { Icon, IconName } from '../../../shared/icon';
@@ -71,6 +65,7 @@ const BUTTON_CLASSES: Readonly<Record<WorkflowAction, string>> = {
     PriorityBadge,
     SlaMeter,
     Avatar,
+    ApprovalChain,
     Icon,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -79,7 +74,9 @@ const BUTTON_CLASSES: Readonly<Record<WorkflowAction, string>> = {
 })
 export class RequestDetail {
   private readonly api = inject(RequestsApi);
-  private readonly announcer = inject(LiveAnnouncer);
+  private readonly store = inject(RequestsStore);
+  private readonly transitions = inject(TransitionService);
+  private readonly toast = inject(ToastService);
   private readonly i18n = inject(TranslationService);
   protected readonly session = inject(SessionStore);
 
@@ -87,14 +84,19 @@ export class RequestDetail {
   readonly id = input.required<string>();
 
   private readonly reloads = signal(0);
-  /** Versão atualizada após uma transição, sem precisar recarregar. */
+  /** Versão atualizada após uma transição ou anexo, sem recarregar. */
   private readonly updated = signal<WorkflowRequest | null>(null);
   private readonly loaded = toSignal(this.loadRequest(), { initialValue: LOADING });
+  private readonly fetchedComments = toSignal(this.loadComments(), {
+    initialValue: [] as readonly RequestComment[],
+  });
+  private readonly posted = signal<readonly RequestComment[]>([]);
 
-  protected readonly comment = signal('');
-  protected readonly actionError = signal<string | null>(null);
+  protected readonly actionIcons = ACTION_ICONS;
   protected readonly busy = signal(false);
-  private readonly commentField = viewChild<ElementRef<HTMLTextAreaElement>>('commentField');
+  protected readonly draftComment = signal('');
+  protected readonly commentError = signal<string | null>(null);
+  protected readonly posting = signal(false);
 
   protected readonly state = computed<DetailState>(() => {
     const fresh = this.updated();
@@ -107,57 +109,77 @@ export class RequestDetail {
     return state.kind === 'loaded' ? availableActions(state.request, this.session.actor()) : [];
   });
 
-  protected readonly actionIcons = ACTION_ICONS;
+  protected readonly chain = computed(() => {
+    const state = this.state();
+    return state.kind === 'loaded' ? buildApprovalChain(state.request) : [];
+  });
+
+  protected readonly thread = computed(() => [...this.fetchedComments(), ...this.posted()]);
+  protected readonly canAttach = computed(() => this.session.currentRole() !== 'auditor');
 
   protected buttonClass(action: WorkflowAction): string {
     return BUTTON_CLASSES[action];
-  }
-
-  protected onComment(event: Event): void {
-    this.comment.set((event.target as HTMLTextAreaElement).value);
   }
 
   protected retry(): void {
     this.reloads.update((count) => count + 1);
   }
 
-  protected run(request: WorkflowRequest, action: WorkflowAction): void {
-    const context = { actor: this.session.actor(), now: new Date(), comment: this.comment() };
-    const localError = checkTransition(request, action, context);
-    if (localError) {
-      this.fail(localError);
+  protected async run(request: WorkflowRequest, action: WorkflowAction): Promise<void> {
+    if (this.busy()) return;
+    this.busy.set(true);
+    try {
+      const outcome = await this.transitions.act(request, action);
+      if (outcome.request) this.updated.set(outcome.request);
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  protected onDraft(event: Event): void {
+    this.draftComment.set((event.target as HTMLTextAreaElement).value);
+    this.commentError.set(null);
+  }
+
+  protected postComment(request: WorkflowRequest): void {
+    const error = validateCommentBody(this.draftComment());
+    if (error) {
+      this.commentError.set(error);
       return;
     }
-    this.busy.set(true);
+    this.posting.set(true);
     this.api
-      .transition(request.id, {
-        action,
-        actor: context.actor,
-        comment: context.comment,
-        expectedStatus: request.status,
-      })
-      .pipe(finalize(() => this.busy.set(false)))
+      .addComment(request.id, { actor: this.session.actor(), body: this.draftComment() })
       .subscribe({
-        next: (result) => this.succeed(result, action),
-        error: (error: unknown) => this.fail(apiErrorCode(error)),
+        next: (comment) => {
+          this.posted.update((current) => [...current, comment]);
+          this.draftComment.set('');
+          this.posting.set(false);
+        },
+        error: (failure: unknown) => {
+          this.commentError.set(apiErrorCode(failure));
+          this.posting.set(false);
+        },
       });
   }
 
-  private succeed(result: WorkflowRequest, action: WorkflowAction): void {
-    this.updated.set(result);
-    this.comment.set('');
-    this.actionError.set(null);
-    const label = this.i18n.translateDynamic(`action.${action}`);
-    this.announcer.announce(this.i18n.translateDynamic('detail.done', { action: label }));
+  protected onFiles(request: WorkflowRequest, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const names = Array.from(input.files ?? []).map((file) => file.name);
+    input.value = '';
+    names.forEach((name) => this.attach(request.id, name));
   }
 
-  private fail(code: string): void {
-    const message = this.i18n.translateDynamic(`error.${code}`);
-    this.actionError.set(message);
-    this.announcer.announce(message, 'assertive');
-    if (code === 'comment_required' || code === 'justification_required') {
-      this.commentField()?.nativeElement.focus();
-    }
+  private attach(requestId: string, name: string): void {
+    this.api.addDocument(requestId, { name }).subscribe({
+      next: (request) => {
+        this.updated.set(request);
+        this.store.upsert(request);
+        this.toast.show(this.i18n.translateDynamic('detail.attached', { name }), 'success');
+      },
+      error: (failure: unknown) =>
+        this.toast.show(this.i18n.translateDynamic(`error.${apiErrorCode(failure)}`), 'error'),
+    });
   }
 
   private loadRequest(): Observable<DetailState> {
@@ -172,6 +194,15 @@ export class RequestDetail {
           ),
         );
       }),
+    );
+  }
+
+  private loadComments(): Observable<readonly RequestComment[]> {
+    return combineLatest([toObservable(this.id), toObservable(this.reloads)]).pipe(
+      tap(() => this.posted.set([])),
+      switchMap(([id]) =>
+        this.api.comments(id).pipe(catchError(() => of<readonly RequestComment[]>([]))),
+      ),
     );
   }
 }

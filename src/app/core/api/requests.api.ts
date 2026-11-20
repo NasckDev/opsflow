@@ -8,12 +8,22 @@ import {
   WorkflowAction,
   WorkflowRequest,
 } from '../../domain/request.model';
+import { RequestComment } from '../../domain/comments';
 import { RequestFilter } from './mock-database';
 
 export interface CreateRequestBody {
   readonly input: NewRequestInput;
   readonly actor: Actor;
   readonly submit: boolean;
+}
+
+export interface CommentBody {
+  readonly actor: Actor;
+  readonly body: string;
+}
+
+export interface DocumentBody {
+  readonly name: string;
 }
 
 export interface TransitionBody {
@@ -51,6 +61,24 @@ export class RequestsApi {
 
   create(body: CreateRequestBody): Observable<WorkflowRequest> {
     return this.http.post<WorkflowRequest>('api/requests', body);
+  }
+
+  comments(id: string): Observable<RequestComment[]> {
+    return this.http.get<RequestComment[]>(`api/requests/${encodeURIComponent(id)}/comments`);
+  }
+
+  addComment(id: string, body: CommentBody): Observable<RequestComment> {
+    return this.http.post<RequestComment>(
+      `api/requests/${encodeURIComponent(id)}/comments`,
+      body,
+    );
+  }
+
+  addDocument(id: string, body: DocumentBody): Observable<WorkflowRequest> {
+    return this.http.post<WorkflowRequest>(
+      `api/requests/${encodeURIComponent(id)}/documents`,
+      body,
+    );
   }
 
   transition(id: string, body: TransitionBody): Observable<WorkflowRequest> {
