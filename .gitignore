@@ -47,3 +47,6 @@ dist-portable
 /test-results
 /playwright-report
 /storybook-static
+
+# Gerado por scripts/build-theme-dark.mjs
+/public/theme-dark.css

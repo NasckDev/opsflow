@@ -19,7 +19,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx ng test --watch=false
-      - run: npx ng build --base-href /opsflow/
+      - run: npm run build -- --base-href /opsflow/
       - run: npm run build:portable
       - run: npm run build-storybook
       - run: npm run e2e

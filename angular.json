@@ -40,10 +40,6 @@
                 "input": "src/styles/theme-light.less",
                 "bundleName": "theme-light"
               },
-              {
-                "input": "src/styles/theme-dark.less",
-                "bundleName": "theme-dark"
-              },
               "src/styles.scss"
             ],
             "allowedCommonJsDependencies": [

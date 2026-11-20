@@ -14,10 +14,16 @@ export function provideUi(): EnvironmentProviders {
   return makeEnvironmentProviders([
     provideNzIcons([...UI_ICONS]),
     provideNzI18n(pt_BR),
-    // O NG-ZORRO 22 exige um adaptador de datas explícito (sem ele o seletor de data não abre).
-    provideNzDateFnsAdapter(),
     provideNzConfig(CONFIG),
   ]);
 }
 
 export { en_US, pt_BR };
+
+/**
+ * Adaptador de datas do NG-ZORRO 22 (sem ele o seletor de data não abre). Fica fora do
+ * `provideUi` para entrar só nas rotas que usam datas: o date-fns não vai para o bundle inicial.
+ */
+export function provideUiDates(): EnvironmentProviders {
+  return provideNzDateFnsAdapter();
+}

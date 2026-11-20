@@ -115,51 +115,7 @@
   />
 }
 
-<app-drawer
-  [open]="panels.openKey() === 'menu'"
-  [title]="'OpsFlow'"
-  placement="left"
-  [width]="viewport.mobile() ? 300 : 320"
-  (closed)="panels.close()"
->
-  <nav [attr.aria-label]="'app.nav.main' | t">
-    <app-menu [groups]="menu()" [selectedKey]="section()" (selected)="panels.close()" />
-  </nav>
-</app-drawer>
-
-<app-drawer
-  [open]="panels.openKey() === 'notifications'"
-  [title]="'notifications.title' | t"
-  [placement]="viewport.mobile() ? 'bottom' : 'right'"
-  [width]="400"
-  [height]="'75%'"
-  (closed)="panels.close()"
->
-  <app-notification-panel />
-</app-drawer>
-
-<app-drawer
-  [open]="panels.openKey() === 'profile'"
-  [title]="'app.profile' | t"
-  [placement]="viewport.mobile() ? 'bottom' : 'right'"
-  [width]="400"
-  [height]="'85%'"
-  (closed)="panels.close()"
->
-  <app-profile-panel />
-</app-drawer>
-
-<app-drawer
-  [open]="panels.openKey() === 'more'"
-  [title]="'app.nav.more' | t"
-  placement="bottom"
-  height="auto"
-  (closed)="panels.close()"
->
-  <app-more-panel />
-</app-drawer>
-
-<app-command-palette />
-<app-shortcuts-dialog />
-<app-comment-prompt />
+@defer (when overlaysNeeded(); prefetch on idle) {
+  <app-shell-overlays [menu]="menu()" [section]="section()" />
+}
 <app-feedback-host />

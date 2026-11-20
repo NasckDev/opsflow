@@ -22,13 +22,15 @@
 </head>
 <body>
   <script>
-    // Só a folha de estilo do tema ativo vale (as duas vêm no index; ver UiTheme).
+    // Tema escuro: baixa a folha escura (depois da clara, para sobrepô-la) antes do primeiro paint.
     try {
-      var dark = document.documentElement.dataset.theme === 'dark';
-      document.querySelectorAll('link[rel=stylesheet]').forEach(function (link) {
-        if (link.href.indexOf('theme-dark') > -1) link.media = dark ? 'all' : 'not all';
-        else if (link.href.indexOf('theme-light') > -1) link.media = dark ? 'not all' : 'all';
-      });
+      if (document.documentElement.dataset.theme === 'dark') {
+        var dark = document.createElement('link');
+        dark.id = 'ox-theme-dark';
+        dark.rel = 'stylesheet';
+        dark.href = 'theme-dark.css';
+        document.head.appendChild(dark);
+      }
     } catch (e) {
       /* sem DOM: o app ajusta ao iniciar */
     }

@@ -8,13 +8,9 @@ import { TranslationService } from './core/i18n/translation.service';
 import { RequestsStore } from './core/requests/requests.store';
 import { SearchStore } from './core/search/search.store';
 import { SessionStore } from './core/session/session.store';
-import { MorePanel } from './core/shell/more-panel';
-import { NotificationPanel } from './core/shell/notification-panel';
+import { ShellOverlays } from './core/shell/shell-overlays';
 import { ShellPanels } from './core/shell/panels';
-import { ProfilePanel } from './core/shell/profile-panel';
-import { CommentPromptHost } from './core/ui/comment-prompt';
-import { CommandPalette } from './core/ui/command-palette';
-import { ShortcutsDialog } from './core/ui/shortcuts-dialog';
+import { CommentPromptService } from './core/ui/comment-prompt.service';
 import { Shortcuts } from './core/ui/shortcuts.service';
 import { ViewportService } from './core/ui/viewport.service';
 import { inboxTasks, todoTasks } from './domain/inbox';
@@ -26,7 +22,6 @@ import {
   AppBottomNav,
   AppBottomNavItem,
   AppButton,
-  AppDrawer,
   AppIconButton,
   AppInput,
   AppLayout,
@@ -60,15 +55,9 @@ export function sectionOf(url: string): Section {
     AppInput,
     AppAvatar,
     AppBadge,
-    AppDrawer,
     AppBottomNav,
     UiFeedbackHost,
-    CommentPromptHost,
-    CommandPalette,
-    ShortcutsDialog,
-    NotificationPanel,
-    ProfilePanel,
-    MorePanel,
+    ShellOverlays,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
@@ -79,6 +68,7 @@ export class App {
   private readonly store = inject(RequestsStore);
   private readonly shortcuts = inject(Shortcuts);
   private readonly i18n = inject(TranslationService);
+  private readonly prompt = inject(CommentPromptService);
   protected readonly session = inject(SessionStore);
   protected readonly search = inject(SearchStore);
   protected readonly panels = inject(ShellPanels);
@@ -174,6 +164,15 @@ export class App {
     if (section === 'board') return this.requesterTab() ? 'more' : 'board';
     return section;
   });
+
+  /** Verdadeiro quando algum painel, diálogo ou gaveta é pedido; o `@defer` então carrega o bloco. */
+  protected readonly overlaysNeeded = computed(
+    () =>
+      this.panels.openKey() !== null ||
+      this.shortcuts.paletteOpen() ||
+      this.shortcuts.helpOpen() ||
+      this.prompt.open() !== null,
+  );
 
   protected readonly drawerWidth = computed(() => (this.viewport.mobile() ? '100%' : 400));
 

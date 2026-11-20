@@ -137,7 +137,7 @@ Os inputs seguem o contrato de props dos wrappers React (`AppButton`: `variant`,
 ### Tema central
 
 - **Cores e formas:** `src/styles/overrides-light.less` e `overrides-dark.less` (variáveis do NG-ZORRO) e `src/styles/tokens.scss` (tokens CSS usados por wrappers e gráficos). Fontes IBM Plex Sans e Mono auto-hospedadas. Cantos de 6 px, base de 14 px.
-- **Claro e escuro:** o `UiTheme` ativa a folha `theme-light` ou `theme-dark` (as duas vêm no `index.html`; a do tema inativo fica com `media="not all"`). A escolha é lembrada e respeita `prefers-color-scheme`.
+- **Claro e escuro:** a folha clara vem no `index.html`; a escura (`theme-dark.css`) só é baixada quando o tema escuro é usado, e o `UiTheme` a liga e desliga. A escolha é lembrada e respeita `prefers-color-scheme`.
 - **Densidade:** compacta (padrão) ou confortável. Os wrappers mudam o tamanho dos controles (`middle` ou `large`) a partir do `UiTheme`.
 - **Contraste AA calculado:** o teste `theme-contrast.spec.ts` calcula a razão de cada par texto/fundo (mínimo 4,5:1) e de cada par de componente ou gráfico (mínimo 3:1) nos dois temas, e confere que as variáveis do NG-ZORRO batem com os tokens. O botão primário usa `#2a63f0` (5,07:1 com texto branco); o azul da marca `#2f6bff` dá 4,4988:1 e fica no logo e nos gráficos.
 
@@ -252,18 +252,20 @@ O RBAC e a validação **são aplicados na API simulada**, não só na tela: o a
 
 Antes (design feito à mão, gráficos em SVG próprio) e depois (NG-ZORRO + ECharts), no build portátil de produção:
 
-| | Antes | Depois |
-|---|---|---|
-| Inicial (JS + CSS), bruto | 495 kB | 1,94 MB |
-| Inicial, transferido | 127 kB | 326 kB |
-| JS inicial (bruto / transferido) | 495 kB / 127 kB | 1,03 MB / 243 kB |
-| CSS inicial: tema claro, tema escuro e globais (transferido) | embutido nos componentes | 40 kB + 40 kB + 3 kB |
-| Maior bloco sob demanda | 68 kB (quadro, CDK DragDrop) | 611 kB (análises, com o ECharts; 177 kB transferidos) |
-| Wizard (seletor de data) | pequeno | 140 kB (26 kB transferidos) |
+| | Antes (design à mão) | Depois (1ª entrega NG-ZORRO) | Depois (otimizado) |
+|---|---|---|---|
+| Inicial (JS + CSS), bruto | 495 kB | 1,94 MB | **1,29 MB** |
+| Inicial, transferido | 127 kB | 326 kB | **249 kB** |
+| JS inicial (bruto / transferido) | 495 kB / 127 kB | 1,03 MB / 243 kB | 838 kB / 206 kB |
+| CSS inicial (transferido) | embutido nos componentes | 40 + 40 + 3 kB (os dois temas) | 39 + 3 kB (só o claro) |
+| Tema escuro | embutido | baixado junto, sempre | `theme-dark.css` (40 kB), só ao usar o tema escuro |
+| Maior bloco sob demanda | 68 kB (quadro) | 611 kB (análises, com o ECharts) | igual |
+
+O que mudou na otimização: (1) a folha do tema escuro deixou de ser baixada com a página: é compilada por `scripts/build-theme-dark.mjs` para `public/theme-dark.css` e entra por um `<link>` só quando o tema escuro é ativado (ou quando o tema salvo já é o escuro); (2) gavetas, paleta, atalhos e pedido de comentário (com o Modal, a Lista, o Form e o Empty do NG-ZORRO) viraram um bloco `@defer` carregado na primeira abertura, com `prefetch on idle`; (3) o adaptador de datas (date-fns) só entra com a rota do wizard. Conferi com `--stats-json` que `table`, `date-picker`, `steps`, `timeline` e `descriptions` já estavam fora do bundle inicial; os ícones registrados são só os usados.
 
 O "antes" é o número medido na versão anterior (bundle inicial de 495 kB, 127 kB transferidos). O "depois" vem do `ng build --configuration portable`, estimativa de transferência do próprio Angular CLI.
 
-O custo vem do NG-ZORRO (tabela, seletor de data, modais, menus, passos e ícones), das **duas** folhas de tema (clara e escura, cerca de 40 kB transferidos cada) e do Angular CDK. Cada tela é carregada sob demanda e o ECharts só entra no chunk das análises.
+O que sobra no bundle inicial é, sobretudo, Angular (core, router, forms), CDK, menu, input e ícones do NG-ZORRO e o dicionário de textos. Cada tela é carregada sob demanda e o ECharts só entra no chunk das análises.
 
 ## Como rodar
 
@@ -273,6 +275,7 @@ npm start               # http://localhost:4200
 npx ng test             # testes unitários (Vitest)
 npm run lint            # ESLint (inclui a barreira de imports da UI)
 npm run build
+npm run theme:dark      # gera public/theme-dark.css (roda sozinho antes de start/build)
 npm run build:portable  # dist-portable/ (base ./, rota por hash, nomes com hash)
 npm run build-storybook # storybook-static/
 npm run e2e             # Playwright + axe (usa o Chrome instalado e o build portátil; E2E_PORT muda a porta)
@@ -289,7 +292,7 @@ npm run e2e             # Playwright + axe (usa o Chrome instalado e o build por
 - Anexos reais: são simulados (só o nome do arquivo é registrado).
 - Alternância de tema no Storybook: ele carrega só a folha clara do NG-ZORRO.
 - Teste de componente de todos os fluxos: há specs de componente para Caixa de entrada, Cadeia de aprovação e Contagem; o resto fica no E2E.
-- A folha do tema inativo ainda é baixada (com baixa prioridade); carregar só a do tema ativo exigiria um passo de build extra.
+- O `public/theme-dark.css` é gerado (`npm run theme:dark`, rodado automaticamente antes de `start`, `build` e `build:portable`) e não é versionado.
 - A segurança (papéis, validação, concorrência) vive na API simulada: é uma demonstração, não autenticação real.
 
 ## Licença

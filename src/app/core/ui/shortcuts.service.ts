@@ -2,7 +2,7 @@ import { DOCUMENT } from '@angular/common';
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ShellPanels } from '../shell/panels';
-import { CommentPromptService } from './comment-prompt';
+import { CommentPromptService } from './comment-prompt.service';
 
 const SEQUENCE_TIMEOUT_MS = 1200;
 const GO_ROUTES: Readonly<Record<string, string>> = {

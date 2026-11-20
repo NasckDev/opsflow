@@ -1,6 +1,8 @@
 import { DOCUMENT } from '@angular/common';
 import { Injectable, InjectionToken, inject, signal } from '@angular/core';
 
+const DARK_LINK_ID = 'ox-theme-dark';
+
 export type UiThemeMode = 'light' | 'dark';
 export type UiDensity = 'compact' | 'comfortable';
 
@@ -66,11 +68,23 @@ export class UiTheme {
     const root = this.document.documentElement;
     root.dataset['theme'] = mode;
     root.dataset['density'] = density;
-    // As duas folhas do NG-ZORRO vêm no index.html; só a do modo ativo vale.
-    this.document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]').forEach((link) => {
-      if (link.href.includes('theme-dark')) link.media = mode === 'dark' ? 'all' : 'not all';
-      else if (link.href.includes('theme-light')) link.media = mode === 'light' ? 'all' : 'not all';
-    });
+    // A folha clara vem no index.html. A escura só é baixada na primeira vez que o tema escuro
+    // é usado (carrega depois da clara e a sobrepõe); voltar ao claro apenas a desativa.
+    const dark = this.document.getElementById(DARK_LINK_ID) as HTMLLinkElement | null;
+    if (mode === 'dark') {
+      if (dark) dark.disabled = false;
+      else this.document.head.appendChild(this.darkLink());
+    } else if (dark) {
+      dark.disabled = true;
+    }
+  }
+
+  private darkLink(): HTMLLinkElement {
+    const link = this.document.createElement('link');
+    link.id = DARK_LINK_ID;
+    link.rel = 'stylesheet';
+    link.href = new URL('theme-dark.css', this.document.baseURI).href;
+    return link;
   }
 
   private initialMode(): UiThemeMode {

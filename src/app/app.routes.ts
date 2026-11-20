@@ -13,8 +13,8 @@ export const routes: Routes = [
   },
   {
     path: 'requests/new',
-    loadComponent: () =>
-      import('./features/requests/request-wizard/request-wizard').then((m) => m.RequestWizard),
+    loadChildren: () =>
+      import('./features/requests/request-wizard/wizard.routes').then((m) => m.WIZARD_ROUTES),
   },
   {
     path: 'requests/:id',

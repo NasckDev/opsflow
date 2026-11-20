@@ -21,7 +21,7 @@ O projeto usa Angular 22.3.0. As peers pedem `^22.0.0`, então **há versão do 
 ## Decisões
 
 1. **Versões exatas** no `package.json` (sem `^` nem `~`), inclusive as dependências que já existiam.
-2. **Tema por Less, não por tokens.** O NG-ZORRO 22 ainda é o Ant Design v4 em Less (não tem `ConfigProvider` com tokens). A identidade do OpsFlow entra por `src/styles/overrides-*.less`, importado depois do tema do NG-ZORRO (em Less, a última definição de cada variável vale). Há duas folhas compiladas (`theme-light` e `theme-dark`), só com os componentes usados; o `UiTheme` ativa uma e desativa a outra (`media`). Isso custa cerca de 40 kB transferidos a mais (a folha do tema inativo também é baixada, com baixa prioridade).
+2. **Tema por Less, não por tokens.** O NG-ZORRO 22 ainda é o Ant Design v4 em Less (não tem `ConfigProvider` com tokens). A identidade do OpsFlow entra por `src/styles/overrides-*.less`, importado depois do tema do NG-ZORRO (em Less, a última definição de cada variável vale). Há duas folhas compiladas, só com os componentes usados: a clara vai no `index.html` e a escura é gerada em `public/theme-dark.css` por `scripts/build-theme-dark.mjs` e só é baixada quando o tema escuro é usado (o `UiTheme` injeta o `<link>`). Assim o carregamento inicial transfere 249 kB, e não 326 kB.
 3. **Fonte única das cores.** `src/styles/tokens.scss` guarda as cores (CSS custom properties) usadas por wrappers, gráficos e peças próprias. Um teste (`theme-contrast.spec.ts`) lê esse arquivo e os `overrides-*.less`, calcula o contraste WCAG de cada par nos dois temas e garante que as variáveis do NG-ZORRO batem com os tokens.
 4. **Primário de botão `#2a63f0`, marca `#2f6bff`.** Branco sobre `#2f6bff` dá 4,4988:1 (abaixo de 4,5). O botão usa `#2a63f0` (5,07:1); o logo e os gráficos mantêm o tom da marca.
 5. **Wrappers em `src/app/ui/`.** As telas só importam de lá. O ESLint (`no-restricted-imports`) barra `ng-zorro-antd`, `echarts`, `ngx-echarts` e `@ant-design/icons-angular` fora dessa pasta. Os inputs seguem os nomes das props dos wrappers React (por exemplo, `AppButton`: `variant`, `size`, `loading`, `disabled`, `icon`, `danger`).
@@ -31,7 +31,7 @@ O projeto usa Angular 22.3.0. As peers pedem `^22.0.0`, então **há versão do 
 
 ## Consequências
 
-- Bundle inicial maior que o do design à mão (ver o README, com os números antes e depois): o custo do NG-ZORRO e das duas folhas de tema.
+- Bundle inicial maior que o do design à mão (ver o README, com os números antes e depois): o custo do NG-ZORRO. Gavetas, paleta e diálogos entram por `@defer` e o date-fns só com o wizard.
 - `npm audit --omit=dev` fecha com 0 vulnerabilidades. O `npm audit` completo aponta 5 (2 moderadas, 3 altas) em dependências **só de desenvolvimento** do builder do Storybook (`webpack-dev-middleware` e `minimatch`); a correção exigiria forçar uma versão major do Storybook, e elas não entram no que vai para produção.
 - O tema escuro do Storybook não alterna: o Storybook carrega só a folha clara.
 

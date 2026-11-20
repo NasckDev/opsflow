@@ -7,7 +7,7 @@ import { accessError, applyTransition, requiresComment } from '../../domain/work
 import { RequestsApi, apiErrorCode } from '../api/requests.api';
 import { TranslationService } from '../i18n/translation.service';
 import { SessionStore } from '../session/session.store';
-import { CommentPromptData, CommentPromptService } from '../ui/comment-prompt';
+import { CommentPromptData, CommentPromptService } from '../ui/comment-prompt.service';
 import { ToastService } from '../ui/toast.service';
 import { RequestsStore } from './requests.store';
 

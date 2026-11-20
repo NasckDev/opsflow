@@ -1,7 +1,7 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { MockBackend, mockApiInterceptor } from '../api/mock-api.interceptor';
-import { CommentPromptService } from '../ui/comment-prompt';
+import { CommentPromptService } from '../ui/comment-prompt.service';
 import { ToastService } from '../ui/toast.service';
 import { RequestsStore } from './requests.store';
 import { TransitionService, UNDO_WINDOW_MS } from './transition.service';
