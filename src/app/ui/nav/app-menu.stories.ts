@@ -6,7 +6,7 @@ const meta: Meta<AppMenu> = {
   title: 'UI/Menu',
   component: AppMenu,
   decorators: [moduleMetadata({ imports: [AppMenu] })],
-  args: { groups: [{ title: 'Workspace', items: [{ key: 'inbox', label: 'Caixa de entrada', icon: 'inbox', href: '#/inbox', badge: 4 }, { key: 'requests', label: 'Solicitações', icon: 'unordered-list', href: '#/requests' }] }, { title: 'Gerenciar', items: [{ key: 'admin', label: 'Administração', icon: 'safety', href: '#/admin' }] }], selectedKey: 'inbox', collapsed: false },
+  args: { groups: [{ title: 'Workspace', items: [{ key: 'inbox', label: 'Caixa de entrada', icon: 'inbox', href: '#/inbox', badge: 4, badgeTone: 'signal' }, { key: 'requests', label: 'Solicitações', icon: 'unordered-list', href: '#/requests', badge: 27 }] }, { title: 'Gerenciar', items: [{ key: 'admin', label: 'Administração', icon: 'safety', href: '#/admin' }] }], selectedKey: 'inbox', collapsed: false },
   argTypes: {},
 };
 export default meta;

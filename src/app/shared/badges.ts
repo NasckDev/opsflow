@@ -6,11 +6,11 @@ import { AppIcon, AppProgress, AppTag, AppTone, UiIconName } from '../ui';
 
 const STATUS_TONES: Readonly<Record<RequestStatus, AppTone>> = {
   draft: 'neutral',
-  in_review: 'warning',
+  in_review: 'info',
   returned: 'violet',
   approved: 'success',
   rejected: 'danger',
-  completed: 'info',
+  completed: 'neutral',
 };
 
 const STATUS_ICONS: Readonly<Record<RequestStatus, UiIconName>> = {
@@ -38,6 +38,7 @@ export class StatusBadge {
   protected readonly icon = computed(() => STATUS_ICONS[this.status()]);
 }
 
+/** Prioridade em selo de borda: laranja para Alta, cinza para Média e Baixa (sempre com texto). */
 const PRIORITY_ICONS: Readonly<Record<Priority, UiIconName>> = {
   high: 'arrow-up',
   medium: 'minus',
@@ -48,25 +49,12 @@ const PRIORITY_ICONS: Readonly<Record<Priority, UiIconName>> = {
   selector: 'app-priority',
   imports: [TranslatePipe, AppIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '[attr.data-priority]': 'priority()' },
-  styles: `
-    :host {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.375rem;
-      white-space: nowrap;
-    }
-    :host([data-priority='high']) app-icon {
-      color: var(--ox-color-danger);
-    }
-    :host([data-priority='medium']) app-icon {
-      color: var(--ox-color-warning);
-    }
-    :host([data-priority='low']) app-icon {
-      color: var(--ox-color-text-muted);
-    }
-  `,
-  template: `<app-icon [name]="icon()" />{{ 'priority.' + priority() | t }}`,
+  host: {
+    '[attr.data-priority]': 'priority()',
+    class: 'app-outline',
+    '[class.app-outline-late]': "priority() === 'high'",
+  },
+  template: `<app-icon [name]="icon()" [size]="0.75" />{{ 'priority.' + priority() | t }}`,
 })
 export class PriorityBadge {
   readonly priority = input.required<Priority>();

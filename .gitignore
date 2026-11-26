@@ -48,6 +48,6 @@ dist-portable
 /playwright-report
 /storybook-static
 
-# Gerado por scripts/build-theme-dark.mjs
-/public/theme-dark.css
+# Gerado por scripts/build-theme-light.mjs
+/public/theme-light.css
 /dist-stats

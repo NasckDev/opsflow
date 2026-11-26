@@ -10,15 +10,11 @@ function read(relative: string): string {
   return readFileSync(join(root, relative), 'utf8');
 }
 
-/** Tokens `--ox-color-*` de cada tema, lidos de src/styles/tokens.scss. */
+/** Tokens `--ox-color-*` de cada tema, lidos de src/styles/tokens.scss (o escuro é o padrão). */
 function tokens(mode: Mode): Record<string, string> {
   const source = read('src/styles/tokens.scss');
-  const darkStart = source.indexOf(":root[data-theme='dark']");
-  const lightStart = source.indexOf(":root[data-theme='light']");
-  const block =
-    mode === 'dark'
-      ? source.slice(darkStart, source.indexOf('/* Densidade', darkStart))
-      : source.slice(lightStart, darkStart);
+  const start = source.indexOf(`:root[data-theme='${mode}']`);
+  const block = source.slice(start, source.indexOf('}', start));
   const result: Record<string, string> = {};
   for (const match of block.matchAll(/--ox-color-([\w-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)) {
     result[match[1]] = match[2].toLowerCase();
@@ -43,7 +39,11 @@ const TEXT_PAIRS: readonly (readonly [string, string])[] = [
   ['text', 'surface-raised'],
   ['text-muted', 'bg'],
   ['text-muted', 'surface-raised'],
+  ['text', 'surface'],
+  ['text-muted', 'surface'],
+  ['text-soft', 'bg'],
   ['accent-text', 'surface-raised'],
+  ['accent-text', 'bg'],
   ['text-on-accent', 'accent'],
   ['text-on-accent', 'success-solid'],
   ['success', 'success-surface'],
@@ -57,7 +57,9 @@ const TEXT_PAIRS: readonly (readonly [string, string])[] = [
 const GRAPHIC_PAIRS: readonly (readonly [string, string])[] = [
   ['border-strong', 'surface-raised'],
   ['focus-ring', 'surface-raised'],
-  ['accent', 'surface-raised'],
+  // O amarelo de sinalização sempre leva texto escuro por cima; como traço ou texto sobre o
+  // fundo claro ele vira accent-text (#8a6a00), que é o par medido aqui.
+  ['accent-text', 'surface-raised'],
   ['cyan', 'surface-raised'],
   ['success', 'surface-raised'],
   ['warning', 'surface-raised'],
@@ -112,9 +114,10 @@ describe('contraste calculado (WCAG 2.2 AA)', () => {
     });
   }
 
-  it('o primário da marca (#2f6bff) não serve de fundo de botão com texto branco', () => {
-    // Por isso o botão usa #2a63f0: 4,50 contra branco ficaria abaixo do limite.
-    expect(contrastRatio('#ffffff', '#2f6bff')).toBeLessThan(4.5);
-    expect(contrastRatio('#ffffff', '#2a63f0')).toBeGreaterThanOrEqual(4.5);
+  it('o amarelo de sinalização (#ffd21f) só serve de fundo, com texto escuro', () => {
+    // Por isso o tema claro usa #8a6a00 para texto e traços amarelos.
+    expect(contrastRatio('#ffd21f', '#ffffff')).toBeLessThan(3);
+    expect(contrastRatio('#0d0f12', '#ffd21f')).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio('#8a6a00', '#ffffff')).toBeGreaterThanOrEqual(4.5);
   });
 });

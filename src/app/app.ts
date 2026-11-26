@@ -27,8 +27,10 @@ import {
   AppLayout,
   AppMenu,
   AppMenuGroup,
+  AppSelectOption,
   UiFeedbackHost,
 } from './ui';
+import { ROLES, Role } from './domain/request.model';
 
 export type Section = 'inbox' | 'requests' | 'new' | 'board' | 'analytics' | 'admin' | 'other';
 
@@ -110,8 +112,15 @@ export class App {
         icon: 'inbox',
         href: '#/inbox',
         badge: this.inboxCount(),
+        badgeTone: 'signal' as const,
       },
-      { key: 'requests', label: t('app.nav.requests'), icon: 'unordered-list', href: '#/requests' },
+      {
+        key: 'requests',
+        label: t('app.nav.requests'),
+        icon: 'unordered-list',
+        href: '#/requests',
+        badge: this.store.requests().length,
+      },
       { key: 'board', label: t('app.nav.board'), icon: 'project', href: '#/board' },
     ];
     if (this.session.can('audit.view')) {
@@ -123,12 +132,19 @@ export class App {
       });
     }
     return [
-      { title: t('app.nav.workspace'), items: workspace },
       {
-        title: t('app.nav.manage'),
-        items: [{ key: 'admin', label: t('app.nav.admin'), icon: 'safety', href: '#/admin' }],
+        items: [
+          ...workspace,
+          { key: 'admin', label: t('app.nav.admin'), icon: 'safety', href: '#/admin' },
+        ],
       },
     ];
+  });
+
+  /** "Ver como": troca o papel de demonstração (os dados recarregam para o novo papel). */
+  protected readonly roleOptions = computed<AppSelectOption[]>(() => {
+    this.i18n.locale();
+    return ROLES.map((role) => ({ value: role, label: this.i18n.translateDynamic(`role.${role}`) }));
   });
 
   protected readonly bottomItems = computed<AppBottomNavItem[]>(() => {
@@ -190,8 +206,13 @@ export class App {
     void this.router.navigateByUrl('/requests/new');
   }
 
-  protected openPalette(): void {
-    this.shortcuts.openPalette();
+  protected openHelp(): void {
+    this.shortcuts.openHelp();
+  }
+
+  protected onRole(value: string | number | null): void {
+    const role = ROLES.find((item) => item === value);
+    if (role) this.session.setRole(role as Role);
   }
 
   protected onBottom(key: string): void {

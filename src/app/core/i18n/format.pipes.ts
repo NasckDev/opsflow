@@ -11,6 +11,15 @@ export class LocalDatePipe implements PipeTransform {
   }
 }
 
+@Pipe({ name: 'shortDate', pure: false })
+export class ShortDatePipe implements PipeTransform {
+  private readonly i18n = inject(TranslationService);
+
+  transform(iso: string): string {
+    return this.i18n.formatShortDate(iso);
+  }
+}
+
 @Pipe({ name: 'money', pure: false })
 export class MoneyPipe implements PipeTransform {
   private readonly i18n = inject(TranslationService);

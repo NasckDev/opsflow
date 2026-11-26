@@ -73,6 +73,21 @@ export class TranslationService {
     }).format(new Date(iso));
   }
 
+  /** Data curta para trilhas densas (auditoria): "24/11 09:14". */
+  formatShortDate(iso: string): string {
+    const parts = new Intl.DateTimeFormat(this.current(), {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date(iso));
+    const part = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find((item) => item.type === type)?.value ?? '';
+    const date = this.current() === 'en' ? `${part('month')}/${part('day')}` : `${part('day')}/${part('month')}`;
+    return `${date} ${part('hour')}:${part('minute')}`;
+  }
+
   formatMoney(amount: number): string {
     return new Intl.NumberFormat(this.current(), { style: 'currency', currency: 'BRL' }).format(
       amount,

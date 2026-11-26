@@ -11,6 +11,8 @@ export interface AppMenuItem {
   /** Destino por hash (ex.: `#/inbox`). */
   readonly href: string;
   readonly badge?: number;
+  /** `signal`: contador em amarelo (pede ação agora). Padrão: selo mono discreto. */
+  readonly badgeTone?: 'signal' | 'muted';
 }
 
 export interface AppMenuGroup {
@@ -49,7 +51,11 @@ export interface AppMenuGroup {
               }
               <span class="app-menu-label">{{ item.label }}</span>
               @if (item.badge) {
-                <span class="app-menu-badge" [attr.aria-label]="item.badge + ''">{{
+                <span
+                  class="app-menu-badge"
+                  [class.app-menu-badge-signal]="item.badgeTone === 'signal'"
+                  [attr.aria-label]="item.badge + ''"
+                  >{{
                   item.badge
                 }}</span>
               }

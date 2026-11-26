@@ -1,60 +1,56 @@
-<section class="page" aria-labelledby="inbox-title">
-  <app-page-header
-    titleId="inbox-title"
-    [title]="'inbox.title' | t"
-    [subtitle]="'inbox.subtitle' | t: { role: 'role.' + role() | t, count: todoCount() }"
-    [breadcrumb]="[{ label: 'OpsFlow', href: '#/inbox' }, { label: 'app.nav.inbox' | t }]"
-  >
-    <div appPageActions>
-      <app-button icon="reload" (click)="retry()">{{ 'inbox.refresh' | t }}</app-button>
-    </div>
-  </app-page-header>
-
-  @if (hintVisible()) {
-    <app-alert
-      class="orient"
-      type="info"
-      [message]="'inbox.orient' | t"
-      [closable]="true"
-      (closed)="dismissHint()"
-    />
-  }
-
-  <div class="toolbar">
-    <div class="chips" role="group" [attr.aria-label]="'inbox.filters' | t">
-      @for (preset of presets; track preset.id) {
-        <app-tag
-          class="filter"
-          [checkable]="true"
-          [checked]="isActive(preset.filter)"
-          (toggled)="applyFilter(preset.filter)"
-        >
-          {{ preset.label | t }}
-          @if (preset.id === 'conclude' && toConclude() > 0) {
-            <span class="count">{{ toConclude() }}</span>
-          }
-        </app-tag>
-      }
-      @for (item of saved(); track item.id) {
-        <span class="saved">
+<section class="inbox" aria-labelledby="inbox-title">
+  <div class="inbox-main">
+    <app-page-header
+      titleId="inbox-title"
+      [title]="'inbox.title' | t"
+      [subtitle]="'inbox.subtitle' | t: { role: 'role.' + role() | t, count: todoCount() }"
+    >
+      <div appPageActions class="tabs" role="group" [attr.aria-label]="'inbox.filters' | t">
+        @for (preset of presets; track preset.id) {
           <app-tag
             class="filter"
-            icon="star"
             [checkable]="true"
-            [checked]="isActive(item.filter)"
-            (toggled)="applyFilter(item.filter)"
+            [checked]="isActive(preset.filter)"
+            (toggled)="applyFilter(preset.filter)"
           >
-            {{ item.name }}
+            {{ preset.label | t }}
+            @if (presetCounts().get(preset.id); as count) {
+              <span class="app-tab-count">{{ count }}</span>
+            }
           </app-tag>
-          <app-icon-button
-            icon="close"
-            size="small"
-            [label]="('inbox.removeFilter' | t) + ' ' + item.name"
-            (click)="removeFilter(item.id)"
-          />
-        </span>
-      }
-    </div>
+        }
+        @for (item of saved(); track item.id) {
+          <span class="saved">
+            <app-tag
+              class="filter"
+              icon="star"
+              [checkable]="true"
+              [checked]="isActive(item.filter)"
+              (toggled)="applyFilter(item.filter)"
+            >
+              {{ item.name }}
+            </app-tag>
+            <app-icon-button
+              icon="close"
+              size="small"
+              [label]="('inbox.removeFilter' | t) + ' ' + item.name"
+              (click)="removeFilter(item.id)"
+            />
+          </span>
+        }
+      </div>
+    </app-page-header>
+
+    @if (hintVisible()) {
+      <app-alert
+        class="orient"
+        type="info"
+        [message]="'inbox.orient' | t"
+        [closable]="true"
+        (closed)="dismissHint()"
+      />
+    }
+
     <div class="refine">
       <div class="select">
         <app-select
@@ -83,169 +79,286 @@
               [ngModelOptions]="{ standalone: true }"
               (ngModelChange)="filterName.set($event)"
             />
-            <app-button variant="primary" htmlType="submit">{{ 'inbox.save' | t }}</app-button>
+            <app-button htmlType="submit">{{ 'inbox.save' | t }}</app-button>
           </form>
         } @else {
-          <app-button icon="star" (click)="naming.set(true)">{{ 'inbox.saveFilter' | t }}</app-button>
+          <app-button icon="star" (click)="naming.set(true)">{{
+            'inbox.saveFilter' | t
+          }}</app-button>
         }
       }
+      <span class="refine-end">
+        <span class="muted" role="status">{{ 'inbox.count' | t: { count: tasks().length } }}</span>
+        <app-button variant="text" icon="reload" (click)="retry()">{{
+          'inbox.refresh' | t
+        }}</app-button>
+      </span>
     </div>
-  </div>
 
-  @if (batchResult(); as result) {
-    <app-card class="batch-result">
-      <div role="status">
-        <p class="result-line">
-          <app-icon [name]="result.skipped.length ? 'info-circle' : 'check-circle'" />
-          {{ 'inbox.batchSummary' | t: { approved: result.approved, skipped: result.skipped.length, remaining: todoCount() } }}
-        </p>
-        @if (result.skipped.length) {
-          <ul class="skipped">
-            @for (item of result.skipped; track item.code) {
-              <li><span class="mono">{{ item.code }}</span> {{ 'inbox.skippedReason.' + item.reason | t }}</li>
+    @if (selected().size > 0 || batch()) {
+      <div class="batch-bar" role="region" [attr.aria-label]="'inbox.batch' | t">
+        @if (batch(); as progress) {
+          <div class="progress" role="status">
+            <span>{{
+              'inbox.batchProgress' | t: { done: progress.done, total: progress.total }
+            }}</span>
+            <app-progress
+              [value]="progress.done"
+              [max]="progress.total"
+              [label]="'inbox.batch' | t"
+            />
+          </div>
+        } @else {
+          <div class="summary">
+            <strong>{{ 'inbox.selected' | t: { count: selected().size } }}</strong>
+            <span class="total"
+              >{{ 'inbox.selectedTotal' | t }}
+              <b class="mono">{{ selectedTotal() | money }}</b></span
+            >
+            @if (willSkip() > 0) {
+              <small>{{ 'inbox.willSkip' | t: { count: willSkip() } }}</small>
             }
-          </ul>
+          </div>
+          <div class="batch-actions">
+            <app-button
+              class="approve"
+              icon="check"
+              [disabled]="eligible().length === 0"
+              (click)="approveSelected()"
+            >
+              {{ 'inbox.approveSelected' | t: { count: eligible().length } }}
+            </app-button>
+            <app-icon-button icon="close" [label]="'inbox.clear' | t" (click)="clearSelection()" />
+          </div>
         }
       </div>
-      <app-button variant="text" (click)="dismissBatchResult()">{{ 'app.close' | t }}</app-button>
-    </app-card>
-  }
-
-  <div class="results">
-    @switch (status()) {
-      @case ('error') {
-        <app-result status="error" [title]="'list.error.title' | t" [description]="'list.error.hint' | t">
-          <app-button variant="primary" icon="reload" (click)="retry()">{{ 'list.retry' | t }}</app-button>
-        </app-result>
-      }
-      @case ('loaded') {
-        @if (tasks().length === 0) {
-          <app-card>
-            <app-empty
-              [title]="(everything().length ? 'list.empty.title' : 'inbox.empty.title') | t"
-              [description]="(everything().length ? 'list.empty.hint' : 'inbox.empty.hint') | t"
-            >
-              @if (!isActive(presets[0].filter)) {
-                <app-button (click)="applyFilter(presets[0].filter)">{{ 'list.clear' | t }}</app-button>
-              }
-            </app-empty>
-          </app-card>
-        } @else {
-          <div class="list-head">
-            <app-checkbox
-              [ngModel]="allSelected()"
-              (ngModelChange)="toggleAll($event)"
-              [ariaLabel]="'inbox.selectAll' | t"
-            >
-              {{ 'inbox.selectAll' | t }}
-            </app-checkbox>
-            <span class="muted" role="status">{{ 'inbox.count' | t: { count: tasks().length } }}</span>
-            <span class="hints muted">
-              <kbd>j</kbd><kbd>k</kbd> {{ 'inbox.hintMove' | t }} · <kbd>a</kbd> {{ 'action.approve' | t }} ·
-              <kbd>r</kbd> {{ 'inbox.hintReject' | t }}
-            </span>
-          </div>
-          <ul class="tasks" data-testid="inbox-list">
-            @for (task of tasks(); track task.request.id) {
-              <li
-                class="task"
-                [id]="'task-' + task.request.id"
-                [class.focused]="keyboardMode() && task.request.id === activeId()"
-                [class.selected]="selected().has(task.request.id)"
-                [attr.data-sla]="task.sla.state"
-                [attr.aria-current]="keyboardMode() && task.request.id === activeId() ? 'true' : null"
-              >
-                <app-card size="small">
-                  <div class="task-grid">
-                    <div class="pick">
-                      @if (isBatchable(task)) {
-                        <app-checkbox
-                          [ngModel]="selected().has(task.request.id)"
-                          (ngModelChange)="toggle(task.request.id)"
-                          [ariaLabel]="('inbox.select' | t) + ' ' + task.request.code"
-                        />
-                      }
-                    </div>
-                    <div class="body">
-                      <p class="line1">
-                        <span class="mono code">{{ task.request.code }}</span>
-                        <app-status-badge [status]="task.request.status" />
-                        <app-priority [priority]="task.request.priority" />
-                      </p>
-                      <a
-                        class="title"
-                        [id]="'open-' + task.request.id"
-                        [attr.href]="'#/requests/' + task.request.id"
-                        [attr.tabindex]="task.request.id === activeId() ? 0 : -1"
-                        >{{ task.request.title }}</a
-                      >
-                      <p class="line3 muted">
-                        <span class="person"><app-avatar [name]="task.request.requester" size="small" />{{ task.request.requester }}</span>
-                        <span class="num">{{ task.request.amount | money }}</span>
-                        <span>{{ 'category.' + task.request.category | t }}</span>
-                      </p>
-                      @if (needsJustification(task)) {
-                        <p class="needs">
-                          <app-icon name="exclamation-circle" [size]="0.875" />{{ 'inbox.needsJustification' | t }}
-                        </p>
-                      }
-                    </div>
-                    <div class="side">
-                      <app-countdown [request]="task.request" />
-                      <span class="muted due">{{ task.request.dueAt | localDate }}</span>
-                    </div>
-                    <div class="acts">
-                      @for (action of task.actions; track action) {
-                        <app-button
-                          [variant]="actionButton[action].variant"
-                          [tone]="actionButton[action].tone"
-                          [danger]="actionButton[action].danger"
-                          [icon]="actionIcons[action]"
-                          (click)="act(task, action)"
-                        >
-                          {{ 'action.' + action | t }}
-                        </app-button>
-                      }
-                    </div>
-                  </div>
-                </app-card>
-              </li>
-            }
-          </ul>
-        }
-      }
-      @default {
-        <app-skeleton [label]="'list.loading' | t" [count]="5" [rows]="2" />
-      }
     }
-  </div>
 
-  @if (selected().size > 0 || batch()) {
-    <div class="batch-bar" role="region" [attr.aria-label]="'inbox.batch' | t">
-      @if (batch(); as progress) {
-        <div class="progress" role="status">
-          <span>{{ 'inbox.batchProgress' | t: { done: progress.done, total: progress.total } }}</span>
-          <app-progress [value]="progress.done" [max]="progress.total" [label]="'inbox.batch' | t" />
-        </div>
-      } @else {
-        <div class="summary">
-          <span>{{ 'inbox.selected' | t: { count: selected().size } }}</span>
-          @if (willSkip() > 0) {
-            <small class="muted">{{ 'inbox.willSkip' | t: { count: willSkip() } }}</small>
+    @if (batchResult(); as result) {
+      <app-card class="batch-result">
+        <div role="status">
+          <p class="result-line">
+            <app-icon [name]="result.skipped.length ? 'info-circle' : 'check-circle'" />
+            {{
+              'inbox.batchSummary'
+                | t
+                  : {
+                      approved: result.approved,
+                      skipped: result.skipped.length,
+                      remaining: todoCount(),
+                    }
+            }}
+          </p>
+          @if (result.skipped.length) {
+            <ul class="skipped">
+              @for (item of result.skipped; track item.code) {
+                <li>
+                  <span class="mono">{{ item.code }}</span>
+                  {{ 'inbox.skippedReason.' + item.reason | t }}
+                </li>
+              }
+            </ul>
           }
         </div>
-        <app-button variant="text" (click)="clearSelection()">{{ 'inbox.clear' | t }}</app-button>
-        <app-button
-          class="approve"
-          variant="primary"
-          tone="success"
-          icon="check"
-          [disabled]="eligible().length === 0"
-          (click)="approveSelected()"
-        >
-          {{ 'inbox.approveSelected' | t: { count: eligible().length } }}
-        </app-button>
+        <app-button variant="text" (click)="dismissBatchResult()">{{ 'app.close' | t }}</app-button>
+      </app-card>
+    }
+
+    <div class="results">
+      @switch (status()) {
+        @case ('error') {
+          <app-result
+            status="error"
+            [title]="'list.error.title' | t"
+            [description]="'list.error.hint' | t"
+          >
+            <app-button variant="primary" icon="reload" (click)="retry()">{{
+              'list.retry' | t
+            }}</app-button>
+          </app-result>
+        }
+        @case ('loaded') {
+          @if (tasks().length === 0) {
+            <app-card>
+              <app-empty
+                [title]="(everything().length ? 'list.empty.title' : 'inbox.empty.title') | t"
+                [description]="(everything().length ? 'list.empty.hint' : 'inbox.empty.hint') | t"
+              >
+                @if (!isActive(presets[0].filter)) {
+                  <app-button (click)="applyFilter(presets[0].filter)">{{
+                    'list.clear' | t
+                  }}</app-button>
+                }
+              </app-empty>
+            </app-card>
+          } @else {
+            <div
+              class="table-wrap"
+              tabindex="0"
+              role="region"
+              [attr.aria-label]="'inbox.title' | t"
+            >
+              <table class="tasks" data-testid="inbox-list">
+                <thead>
+                  <tr>
+                    <th scope="col" class="pick">
+                      <app-checkbox
+                        [ngModel]="allSelected()"
+                        (ngModelChange)="toggleAll($event)"
+                        [ariaLabel]="'inbox.selectAll' | t"
+                      />
+                      <span class="pick-label" aria-hidden="true">{{ 'inbox.selectAll' | t }}</span>
+                    </th>
+                    <th scope="col">{{ 'inbox.col.code' | t }}</th>
+                    <th scope="col">{{ 'inbox.col.request' | t }}</th>
+                    <th scope="col" class="end">{{ 'inbox.col.amount' | t }}</th>
+                    <th scope="col">{{ 'inbox.col.priority' | t }}</th>
+                    <th scope="col" class="end">{{ 'inbox.col.sla' | t }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (task of tasks(); track task.request.id) {
+                    <tr
+                      class="task"
+                      [id]="'task-' + task.request.id"
+                      [class.active]="task.request.id === activeId()"
+                      [class.focused]="keyboardMode() && task.request.id === activeId()"
+                      [class.selected]="selected().has(task.request.id)"
+                      [attr.data-sla]="task.sla.state"
+                      [attr.aria-current]="
+                        keyboardMode() && task.request.id === activeId() ? 'true' : null
+                      "
+                      (click)="show(task)"
+                    >
+                      <td class="pick">
+                        @if (isBatchable(task)) {
+                          <app-checkbox
+                            [ngModel]="selected().has(task.request.id)"
+                            (ngModelChange)="toggle(task.request.id)"
+                            [ariaLabel]="('inbox.select' | t) + ' ' + task.request.code"
+                          />
+                        }
+                      </td>
+                      <td class="code mono">{{ task.request.code }}</td>
+                      <td class="req">
+                        <button
+                          type="button"
+                          class="title"
+                          [id]="'open-' + task.request.id"
+                          aria-controls="inbox-detail"
+                          [attr.tabindex]="task.request.id === activeId() ? 0 : -1"
+                          (click)="$event.stopPropagation(); show(task, true)"
+                        >
+                          {{ task.request.title }}
+                        </button>
+                        <span class="meta">
+                          <span class="person">{{ task.request.requester }}</span>,
+                          {{ 'category.' + task.request.category | t }}
+                        </span>
+                        @if (needsJustification(task)) {
+                          <span class="needs">
+                            <app-icon name="exclamation-circle" [size]="0.8125" />{{
+                              'inbox.needsJustification' | t
+                            }}
+                          </span>
+                        }
+                      </td>
+                      <td class="amount mono end">
+                        @if (task.request.amount > 0) {
+                          {{ task.request.amount | money }}
+                        } @else {
+                          <span class="muted">{{ 'inbox.detail.noAmount' | t }}</span>
+                        }
+                      </td>
+                      <td class="prio"><app-priority [priority]="task.request.priority" /></td>
+                      <td class="sla end"><app-countdown [request]="task.request" /></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+        @default {
+          <app-skeleton [label]="'list.loading' | t" [count]="5" [rows]="2" />
+        }
       }
     </div>
+    <p class="footnote">{{ 'inbox.footnote' | t }}</p>
+  </div>
+
+  @if (activeTask(); as task) {
+    <aside
+      id="inbox-detail"
+      class="inbox-detail"
+      [attr.aria-label]="'inbox.detail' | t: { code: task.request.code }"
+      data-testid="inbox-detail"
+    >
+      <div class="detail-head">
+        <p class="detail-code">
+          <span class="mono">{{ task.request.code }}</span>
+          <app-status-badge [status]="task.request.status" />
+        </p>
+        <h2>{{ task.request.title }}</h2>
+        <p class="detail-amount mono">
+          @if (task.request.amount > 0) {
+            {{ task.request.amount | money }}
+          } @else {
+            {{ 'inbox.detail.noAmount' | t }}
+          }
+        </p>
+        <p class="detail-meta muted">
+          {{ task.request.requester }}, {{ 'category.' + task.request.category | t }} ·
+          <app-countdown [request]="task.request" />
+        </p>
+      </div>
+
+      <section class="detail-block" aria-labelledby="chain-title">
+        <h3 id="chain-title">{{ 'chain.title' | t }}</h3>
+        <app-approval-chain-list [steps]="activeChain()" />
+      </section>
+
+      @if (needsJustification(task)) {
+        <p class="needs">
+          <app-icon name="exclamation-circle" [size]="0.875" />{{ 'inbox.needsJustification' | t }}
+        </p>
+      }
+
+      <div class="detail-actions">
+        @for (action of task.actions; track action) {
+          <app-button
+            [class]="'act act-' + action"
+            [variant]="action === 'return' ? 'dashed' : actionButton[action].variant"
+            [danger]="false"
+            [icon]="actionIcons[action]"
+            (click)="act(task, action)"
+          >
+            {{ 'action.' + action | t }}
+            @if (action === 'approve') {
+              <kbd>A</kbd>
+            } @else if (action === 'reject') {
+              <kbd>R</kbd>
+            }
+          </app-button>
+        }
+      </div>
+      <a class="detail-open" [attr.href]="'#/requests/' + task.request.id">
+        {{ 'inbox.detail.open' | t }} <kbd>Enter</kbd>
+      </a>
+
+      @if (canSeeAudit() && recentAudit().length) {
+        <section class="detail-block detail-audit" aria-labelledby="audit-title">
+          <h3 id="audit-title">{{ 'inbox.detail.audit' | t }}</h3>
+          <dl>
+            @for (entry of recentAudit(); track entry.id) {
+              <dt>
+                <time [attr.datetime]="entry.at">{{ entry.at | shortDate }}</time>
+              </dt>
+              <dd>{{ 'action.' + entry.action | t }} · {{ entry.actor }}</dd>
+            }
+          </dl>
+        </section>
+      }
+    </aside>
   }
 </section>

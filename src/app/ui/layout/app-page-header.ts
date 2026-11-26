@@ -37,19 +37,30 @@ import { AppBreadcrumb, AppBreadcrumbItem } from '../nav/app-breadcrumb';
     }
     h1 {
       margin: 0;
-      font-size: 1.375rem;
-      font-weight: 600;
-      line-height: 1.25;
+      font-size: var(--ox-font-size-xxl);
+      font-weight: 700;
+      line-height: 1.2;
       letter-spacing: -0.01em;
     }
     .app-page-subtitle {
-      margin: 0.25rem 0 0;
+      margin: 0.375rem 0 0;
       color: var(--ox-color-text-muted);
+      font-size: var(--ox-font-size-sm);
+    }
+    @media (max-width: 599px) {
+      h1 {
+        font-size: 1.625rem;
+      }
+    }
+    .app-page-header-text {
+      min-width: 0;
     }
     .app-page-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
+      min-width: 0;
+      max-width: 100%;
     }
   `,
 })

@@ -6,7 +6,7 @@ const meta: Meta<AppLayout> = {
   title: 'UI/Layout',
   component: AppLayout,
   decorators: [moduleMetadata({ imports: [AppLayout] })],
-  args: { collapsed: false, mobile: false, siderWidth: 232 },
+  args: { collapsed: false, mobile: false, siderWidth: 210 },
   argTypes: {},
 };
 export default meta;

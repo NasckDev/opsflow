@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { Injectable, InjectionToken, inject, signal } from '@angular/core';
 
-const DARK_LINK_ID = 'ox-theme-dark';
+const LIGHT_LINK_ID = 'ox-theme-light';
 
 export type UiThemeMode = 'light' | 'dark';
 export type UiDensity = 'compact' | 'comfortable';
@@ -68,30 +68,38 @@ export class UiTheme {
     const root = this.document.documentElement;
     root.dataset['theme'] = mode;
     root.dataset['density'] = density;
-    // A folha clara vem no index.html. A escura só é baixada na primeira vez que o tema escuro
-    // é usado (carrega depois da clara e a sobrepõe); voltar ao claro apenas a desativa.
-    const dark = this.document.getElementById(DARK_LINK_ID) as HTMLLinkElement | null;
-    if (mode === 'dark') {
-      if (dark) dark.disabled = false;
-      else this.document.head.appendChild(this.darkLink());
-    } else if (dark) {
-      dark.disabled = true;
+    // O OpsFlow é escuro por padrão: a folha escura vem no bundle. A clara só é baixada na primeira
+    // vez que o tema claro é usado (carrega depois da escura e a sobrepõe); voltar ao escuro a desativa.
+    const light = this.document.getElementById(LIGHT_LINK_ID) as HTMLLinkElement | null;
+    if (mode === 'light') {
+      if (light) light.disabled = false;
+      else this.insertLight(this.lightLink());
+    } else if (light) {
+      light.disabled = true;
     }
   }
 
-  private darkLink(): HTMLLinkElement {
+  /**
+   * A folha clara entra logo depois da escura do NG-ZORRO (para sobrepô-la) e antes dos estilos
+   * do app, que ajustam o NG-ZORRO com a mesma especificidade e precisam vir por último.
+   */
+  private insertLight(link: HTMLLinkElement): void {
+    const base = this.document.querySelector('link[href*="theme-dark"]');
+    if (base) base.after(link);
+    else this.document.head.appendChild(link);
+  }
+
+  private lightLink(): HTMLLinkElement {
     const link = this.document.createElement('link');
-    link.id = DARK_LINK_ID;
+    link.id = LIGHT_LINK_ID;
     link.rel = 'stylesheet';
-    link.href = new URL('theme-dark.css', this.document.baseURI).href;
+    link.href = new URL('theme-light.css', this.document.baseURI).href;
     return link;
   }
 
+  /** Escuro por padrão (identidade "torre de controle"); o claro só por escolha salva. */
   private initialMode(): UiThemeMode {
-    const stored = read(`${this.prefix}.theme`);
-    if (stored === 'light' || stored === 'dark') return stored;
-    const prefersDark = globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
-    return prefersDark ? 'dark' : 'light';
+    return read(`${this.prefix}.theme`) === 'light' ? 'light' : 'dark';
   }
 
   private initialDensity(): UiDensity {

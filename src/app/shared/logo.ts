@@ -1,43 +1,31 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
-/** Marca do OpsFlow: dois fluxos convergindo em um nó de decisão. */
+/** Marca do OpsFlow: placa de sinalização amarela com três linhas de fila. */
 @Component({
   selector: 'app-logo',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     :host {
       display: inline-flex;
-      width: 2rem;
-      height: 2rem;
+      width: 1.75rem;
+      height: 1.75rem;
       flex: none;
     }
     svg {
       width: 100%;
       height: 100%;
     }
-    .bg {
-      fill: var(--ox-color-accent);
-    }
-    .fg {
-      stroke: var(--ox-color-text-on-accent);
-    }
-    .dot {
-      fill: var(--ox-color-text-on-accent);
-    }
   `,
   template: `
-    <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-      <rect class="bg" width="32" height="32" rx="9" />
+    <svg viewBox="0 0 28 28" aria-hidden="true" focusable="false">
+      <rect width="28" height="28" rx="6" fill="#ffd21f" />
       <path
-        class="fg"
-        d="M9.5 10.5H14c4 0 4 5.5 9 5.5M9.5 21.5H14c4 0 4-5.5 9-5.5"
-        fill="none"
-        stroke-width="2"
+        d="M7 9h8M7 14h14M7 19h10"
+        stroke="#0d0f12"
+        stroke-width="2.6"
         stroke-linecap="round"
+        fill="none"
       />
-      <circle class="dot" cx="9.5" cy="10.5" r="2.2" />
-      <circle class="dot" cx="9.5" cy="21.5" r="2.2" />
-      <circle class="dot" cx="23" cy="16" r="3" />
     </svg>
   `,
 })
