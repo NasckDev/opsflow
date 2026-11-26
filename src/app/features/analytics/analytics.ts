@@ -136,14 +136,14 @@ export class Analytics {
           name: this.i18n.translateDynamic('analytics.created'),
           type: 'bar',
           barMaxWidth: 18,
-          itemStyle: { color: palette.accent, borderRadius: [3, 3, 0, 0] },
+          itemStyle: { color: palette.neutral, borderRadius: [3, 3, 0, 0] },
           data: points.map((point) => point.created),
         },
         {
           name: this.i18n.translateDynamic('analytics.decided'),
           type: 'bar',
           barMaxWidth: 18,
-          itemStyle: { color: palette.cyan, borderRadius: [3, 3, 0, 0] },
+          itemStyle: { color: palette.success, borderRadius: [3, 3, 0, 0] },
           data: points.map((point) => point.decided),
         },
       ],
@@ -233,7 +233,7 @@ export class Analytics {
           data: items.map((item) => ({
             value: item.value,
             itemStyle: {
-              color: item.highlight ? palette.warning : palette.accent,
+              color: item.highlight ? palette.warning : palette.neutral,
               borderRadius: [0, 3, 3, 0],
             },
           })),

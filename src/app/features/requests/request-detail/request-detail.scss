@@ -49,14 +49,22 @@
 }
 
 .amount {
+  font-family: var(--ox-font-family-mono);
+  font-size: 1.125rem;
   font-weight: 600;
+}
+
+/* A decisão é a área de ação da página: marca amarela de 3 px, como a linha ativa da caixa. */
+.decision ::ng-deep .ant-card {
+  box-shadow: inset 3px 0 0 var(--ox-color-accent);
 }
 
 .doc {
   display: block;
   padding: 0.5rem 0.75rem;
-  background: var(--ox-neutral-surface);
-  border-radius: 6px;
+  background: var(--ox-color-surface);
+  border: 1px solid var(--ox-color-border);
+  border-radius: var(--ox-radius-md);
 }
 
 .hint {

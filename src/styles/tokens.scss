@@ -1,9 +1,30 @@
 /*
- * Tokens do OpsFlow: identidade própria do console.
- * Grafite e aço no escuro, azul elétrico (#2F6BFF) como marca e ciano como destaque.
- * Pares de cor verificados para contraste AA (texto >= 4,5:1; componentes >= 3:1).
+ * Tokens do OpsFlow, identidade "torre de controle": escuro por padrão, amarelo de sinalização
+ * (#FFD21F) só no que pede ação agora, IBM Plex Sans na interface e IBM Plex Mono em códigos,
+ * valores, prazos e atalhos. O tema claro entra com data-theme="light".
+ *
+ * `--ops-*` são os tokens do pacote de design (tokens.css). `--ox-color-*` são os tokens
+ * semânticos que o app e o NG-ZORRO consomem; o teste theme-contrast.spec.ts lê os valores
+ * hexadecimais de cada bloco e confere o contraste AA nos dois temas.
  */
 :root {
+  --ops-ground: #f4f5f7;
+  --ops-panel: #ffffff;
+  --ops-raised: #eef0f3;
+  --ops-line: #d5d9df;
+  --ops-text: #0d0f12;
+  --ops-muted: #555d69;
+  --ops-signal: #ffd21f;
+  --ops-on-signal: #0d0f12;
+  --ops-signal-text: #8a6a00;
+  --ops-done: #187548;
+  --ops-late: #c2511f;
+  --ops-info: #dce5f5;
+  --ops-radius: 8px;
+  --ops-radius-tag: 4px;
+  --ops-font-ui: 'IBM Plex Sans', Arial, sans-serif;
+  --ops-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
   --ox-font-family-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --ox-font-family-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
   --ox-font-size-xs: 0.75rem;
@@ -11,7 +32,7 @@
   --ox-font-size-md: 1rem;
   --ox-font-size-lg: 1.125rem;
   --ox-font-size-xl: 1.375rem;
-  --ox-font-size-xxl: 1.75rem;
+  --ox-font-size-xxl: 1.875rem;
   --ox-font-weight-regular: 400;
   --ox-font-weight-medium: 500;
   --ox-font-weight-semibold: 600;
@@ -31,8 +52,8 @@
   --ox-space-12: 3rem;
 
   --ox-radius-sm: 4px;
-  --ox-radius-md: 6px;
-  --ox-radius-lg: 8px;
+  --ox-radius-md: 8px;
+  --ox-radius-lg: 10px;
   --ox-radius-full: 9999px;
 
   --ox-motion-duration-fast: 120ms;
@@ -45,91 +66,114 @@
   --ox-z-index-toast: 1300;
 }
 
-:root,
-:root[data-theme='light'] {
-  color-scheme: light;
-  --ox-color-bg: #f6f7f9;
-  --ox-color-surface: #eef0f4;
-  --ox-color-surface-raised: #ffffff;
-  --ox-color-border: #d8dde5;
-  --ox-color-border-strong: #7a8494;
-  --ox-color-text: #111418;
-  --ox-color-text-muted: #4a5565;
-  --ox-color-text-on-accent: #ffffff;
-  --ox-color-brand: #2f6bff;
-  --ox-color-accent: #2a63f0;
-  --ox-color-accent-hover: #1f4fd0;
-  --ox-color-accent-surface: #e8efff;
-  --ox-color-accent-text: #1f4fd0;
-  --ox-color-cyan: #0e8f99;
-  --ox-color-success: #047857;
-  --ox-color-success-surface: #e3f5ec;
-  --ox-color-success-solid: #047857;
-  --ox-color-warning: #92400e;
-  --ox-color-warning-surface: #fef3c7;
-  --ox-color-danger: #b42318;
-  --ox-color-danger-surface: #fdecea;
-  --ox-color-danger-solid: #c4301f;
-  --ox-color-step-idle: #5a6677;
-  --ox-color-violet: #6d28d9;
-  --ox-color-violet-surface: #efeafe;
-  --ox-color-info: #1d4ed8;
-  --ox-color-info-surface: #e7eeff;
-  --ox-color-focus-ring: #1d4ed8;
-  --ox-color-overlay: rgb(17 20 24 / 0.55);
-  --ox-color-skeleton: #e3e7ed;
-  --ox-shadow-sm: 0 1px 2px rgb(17 20 24 / 0.06), 0 0 0 1px rgb(17 20 24 / 0.02);
-  --ox-shadow-md: 0 4px 14px rgb(17 20 24 / 0.1);
-  --ox-shadow-lg: 0 18px 44px rgb(17 20 24 / 0.2);
+/* O OpsFlow é escuro por padrão: estes valores sobrescrevem o claro. */
+:root:not([data-theme='light']) {
+  --ops-ground: #0d0f12;
+  --ops-panel: #16191e;
+  --ops-raised: #1c2026;
+  --ops-line: #23272e;
+  --ops-text: #f2f3f5;
+  --ops-muted: #98a1ad;
+  --ops-signal-text: #ffd21f;
+  --ops-done: #4fd18b;
+  --ops-late: #ff8a5c;
+  --ops-info: #2b3a55;
 }
 
+:root,
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --ox-color-bg: #111418;
-  --ox-color-surface: #161b21;
-  --ox-color-surface-raised: #1c2128;
-  --ox-color-border: #323a45;
-  --ox-color-border-strong: #8b96a6;
-  --ox-color-text: #e8ecf2;
-  --ox-color-text-muted: #9ca7b6;
-  --ox-color-text-on-accent: #0b1226;
-  --ox-color-brand: #2f6bff;
-  --ox-color-accent: #6e9bff;
-  --ox-color-accent-hover: #93b4ff;
-  --ox-color-accent-surface: #172547;
-  --ox-color-accent-text: #8fb0ff;
+  --ox-color-bg: #0d0f12;
+  --ox-color-surface: #1c2026;
+  --ox-color-surface-raised: #16191e;
+  --ox-color-surface-sunken: #121418;
+  --ox-color-border: #23272e;
+  --ox-color-border-control: #2a2f37;
+  --ox-color-border-soft: #4a5260;
+  --ox-color-border-strong: #6b7480;
+  --ox-color-text: #f2f3f5;
+  --ox-color-text-soft: #b4bcc6;
+  --ox-color-text-muted: #98a1ad;
+  --ox-color-text-on-accent: #0d0f12;
+  --ox-color-brand: #ffd21f;
+  --ox-color-accent: #ffd21f;
+  --ox-color-accent-hover: #ffe27a;
+  --ox-color-accent-surface: #2a2412;
+  --ox-color-accent-text: #ffd21f;
   --ox-color-cyan: #2dd4e0;
-  --ox-color-success: #4ade9f;
-  --ox-color-success-surface: #0f2d22;
-  --ox-color-success-solid: #4ade9f;
-  --ox-color-warning: #fbbf24;
-  --ox-color-warning-surface: #33260a;
-  --ox-color-danger: #ff8a80;
-  --ox-color-danger-surface: #3a1816;
-  --ox-color-danger-solid: #c4301f;
-  --ox-color-step-idle: #9ca7b6;
+  --ox-color-success: #4fd18b;
+  --ox-color-success-surface: #12261b;
+  --ox-color-success-solid: #4fd18b;
+  --ox-color-warning: #ffd21f;
+  --ox-color-warning-surface: #2a2412;
+  --ox-color-danger: #ff8a5c;
+  --ox-color-danger-surface: #2e1a12;
+  --ox-color-danger-solid: #c2511f;
+  --ox-color-step-idle: #98a1ad;
   --ox-color-violet: #b79cff;
   --ox-color-violet-surface: #25193f;
-  --ox-color-info: #7fb0ff;
-  --ox-color-info-surface: #12264a;
-  --ox-color-focus-ring: #93b4ff;
+  --ox-color-info: #cfdbf2;
+  --ox-color-info-surface: #2b3a55;
+  --ox-color-focus-ring: #ffd21f;
+  --ox-color-skeleton: #1c2026;
   --ox-color-overlay: rgb(0 0 0 / 0.68);
-  --ox-color-skeleton: #262d37;
   --ox-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
   --ox-shadow-md: 0 6px 18px rgb(0 0 0 / 0.45);
   --ox-shadow-lg: 0 20px 48px rgb(0 0 0 / 0.6);
 }
 
-/* Densidade: compacta (padrão do console) ou confortável. */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --ox-color-bg: #f4f5f7;
+  --ox-color-surface: #eef0f3;
+  --ox-color-surface-raised: #ffffff;
+  --ox-color-surface-sunken: #f9fafb;
+  --ox-color-border: #d5d9df;
+  --ox-color-border-control: #c3c9d1;
+  --ox-color-border-soft: #a9b1bc;
+  --ox-color-border-strong: #7a8494;
+  --ox-color-text: #0d0f12;
+  --ox-color-text-soft: #3b424c;
+  --ox-color-text-muted: #555d69;
+  --ox-color-text-on-accent: #0d0f12;
+  --ox-color-brand: #ffd21f;
+  --ox-color-accent: #ffd21f;
+  --ox-color-accent-hover: #ffdc4d;
+  --ox-color-accent-surface: #fff6cc;
+  --ox-color-accent-text: #8a6a00;
+  --ox-color-cyan: #0e8f99;
+  --ox-color-success: #187548;
+  --ox-color-success-surface: #e3f3ea;
+  --ox-color-success-solid: #4fd18b;
+  --ox-color-warning: #8a6a00;
+  --ox-color-warning-surface: #fff6cc;
+  /* --ops-late (#c2511f) dá 4,19:1 sobre o fundo rosado; o texto usa um tom mais escuro. */
+  --ox-color-danger: #a8441a;
+  --ox-color-danger-surface: #fdf0ea;
+  --ox-color-danger-solid: #c2511f;
+  --ox-color-step-idle: #555d69;
+  --ox-color-violet: #6d28d9;
+  --ox-color-violet-surface: #efeafe;
+  --ox-color-info: #1f3b73;
+  --ox-color-info-surface: #dce5f5;
+  --ox-color-focus-ring: #8a6a00;
+  --ox-color-skeleton: #e3e7ed;
+  --ox-color-overlay: rgb(13 15 18 / 0.55);
+  --ox-shadow-sm: 0 1px 2px rgb(13 15 18 / 0.06), 0 0 0 1px rgb(13 15 18 / 0.02);
+  --ox-shadow-md: 0 4px 14px rgb(13 15 18 / 0.1);
+  --ox-shadow-lg: 0 18px 44px rgb(13 15 18 / 0.2);
+}
+
+/* Densidade: compacta (padrão do console, linhas de 56 px) ou confortável. */
 :root,
 :root[data-density='compact'] {
-  --ox-row-h: 2.5rem;
-  --ox-body-size: 0.8125rem;
+  --ox-row-h: 3.5rem;
+  --ox-body-size: 0.875rem;
 }
 
 :root[data-density='comfortable'] {
-  --ox-row-h: 3.25rem;
-  --ox-body-size: 0.875rem;
+  --ox-row-h: 4rem;
+  --ox-body-size: 0.9375rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

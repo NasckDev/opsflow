@@ -5,7 +5,7 @@ import { WorkflowRequest } from '../domain/request.model';
 import { evaluateSla, formatCountdown, formatHours, slaOutcome } from '../domain/sla';
 import { AppIcon } from '../ui';
 
-/** Contagem regressiva do SLA, com cor e ícone por risco (nunca só cor). */
+/** Contagem regressiva do SLA: selo amarelo perto de vencer, borda laranja vencido (sempre com texto e ícone). */
 @Component({
   selector: 'app-countdown',
   imports: [TranslatePipe, AppIcon],
@@ -13,30 +13,42 @@ import { AppIcon } from '../ui';
   host: { '[attr.data-sla]': 'sla().state' },
   styles: `
     :host {
-      --tone: var(--ox-color-success);
       display: inline-flex;
       align-items: center;
       gap: 0.3125rem;
+      padding: 2px 8px;
       font-family: var(--ox-font-family-mono);
-      font-size: var(--ox-font-size-xs);
-      font-weight: var(--ox-font-weight-medium);
-      color: var(--tone);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      line-height: 1.25rem;
+      color: var(--ox-color-text-soft);
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
+      border: 1px solid transparent;
+      border-radius: var(--ox-radius-sm);
     }
+    /* Perto de vencer: amarelo de sinalização preenchido (pede ação agora). */
     :host([data-sla='at_risk']) {
-      --tone: var(--ox-color-warning);
+      color: var(--ox-color-text-on-accent);
+      background: var(--ox-color-accent);
     }
+    /* Vencido: borda laranja e o texto "atraso". */
     :host([data-sla='breached']) {
-      --tone: var(--ox-color-danger);
+      color: var(--ox-color-danger);
+      border-color: var(--ox-color-danger);
     }
     :host([data-sla='closed']) {
-      --tone: var(--ox-color-text-muted);
+      padding-inline: 0;
+      color: var(--ox-color-text-muted);
+      font-family: var(--ox-font-family-sans);
+      font-weight: 500;
       white-space: normal;
     }
   `,
   template: `
-    <app-icon [name]="sla().state === 'breached' ? 'exclamation-circle' : 'clock-circle'" [size]="0.875" />
+    @if (sla().state === 'breached' || sla().state === 'at_risk') {
+      <app-icon [name]="sla().state === 'breached' ? 'exclamation-circle' : 'clock-circle'" [size]="0.8125" />
+    }
     @switch (sla().state) {
       @case ('closed') {
         @if (outcome(); as result) {

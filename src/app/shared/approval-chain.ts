@@ -30,7 +30,7 @@ const ICONS: Partial<Record<ChainStepState, string>> = {
     <app-steps
       [steps]="items()"
       [current]="current()"
-      [direction]="viewport.mobile() ? 'vertical' : 'horizontal'"
+      [direction]="viewport.compact() ? 'vertical' : 'horizontal'"
       [ariaLabel]="i18n.translateDynamic('chain.title')"
       size="small"
     />

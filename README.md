@@ -4,31 +4,33 @@ Console de workflow e aprovações para quem decide o dia inteiro: cada papel ab
 
 A interface é feita com **NG-ZORRO (Ant Design para Angular)** e **Apache ECharts**, sempre por uma camada de wrappers própria (`src/app/ui`), com o tema do OpsFlow e Storybook de todos os componentes.
 
+A identidade é a de uma **torre de controle**: escuro por padrão, denso e direto, com IBM Plex Sans na interface e IBM Plex Mono em códigos, valores, prazos e atalhos. O **amarelo de sinalização** (`#FFD21F`) marca só o que pede ação agora: prazo perto de vencer, seleção em lote e o botão de aprovar (no máximo um botão amarelo por área). O tema claro existe e é escolhido no perfil.
+
 Todos os dados são fictícios e a API é simulada no navegador (interceptor HTTP), então o app roda inteiro em qualquer hospedagem estática.
 
 **Demo:** https://nasckdev.github.io/opsflow/
 
 ## Telas
 
-Desktop em 1440x900 e celular em 390x844, com os dados fictícios de exemplo.
+Desktop em 1440x900 e celular em 390x844, com os dados fictícios de exemplo. O tema padrão é o escuro; as análises e a lista também aparecem no tema claro.
 
-![Caixa de entrada do aprovador, com SLA em contagem regressiva e ações por tarefa](docs/prints/opsflow-caixa-entrada-desktop.webp)
+![Caixa de entrada do aprovador: tabela densa com prazo de SLA e o detalhe da tarefa em foco, com cadeia de aprovação e auditoria](docs/prints/opsflow-caixa-entrada-desktop.webp)
 
 ![Decidir resolve a tarefa: sai da caixa, o contador cai e o aviso oferece Desfazer](docs/prints/opsflow-caixa-desfazer-desktop.webp)
 
-![Aprovação em lote com a seleção congelada](docs/prints/opsflow-caixa-lote-desktop.webp)
+![Barra de lote amarela com a quantidade, o total e a aprovação em lote](docs/prints/opsflow-caixa-lote-desktop.webp)
 
-<img src="docs/prints/opsflow-caixa-entrada-mobile.webp" alt="Caixa de entrada no celular" width="220"> <img src="docs/prints/opsflow-caixa-lote-mobile.webp" alt="Aprovação em lote no celular, com a barra de ação fixa" width="220"> <img src="docs/prints/opsflow-mais-mobile.webp" alt="Folha Mais do celular" width="220">
+<img src="docs/prints/opsflow-caixa-entrada-mobile.webp" alt="Caixa de entrada no celular" width="220"> <img src="docs/prints/opsflow-caixa-lote-mobile.webp" alt="Aprovação em lote no celular, com a barra amarela acima da tabela" width="220"> <img src="docs/prints/opsflow-mais-mobile.webp" alt="Folha Mais do celular" width="220">
 
 <img src="docs/prints/opsflow-quadro-mobile.webp" alt="Quadro no celular, com abas por coluna" width="220"> <img src="docs/prints/opsflow-admin-mobile.webp" alt="Permissões por papel no celular" width="220"> <img src="docs/prints/opsflow-lista-solicitacoes-mobile.webp" alt="Lista de solicitações no celular, em cartões" width="220"> <img src="docs/prints/opsflow-detalhe-auditoria-mobile.webp" alt="Detalhe com auditoria no celular" width="220">
 
 ![Quadro kanban por estado, com arrastar e soltar que respeita a máquina de estados](docs/prints/opsflow-quadro-desktop.webp)
 
-![Análises: vazão por semana, cumprimento de SLA, gargalo por etapa e ações por papel](docs/prints/opsflow-analises-desktop.webp)
+![Análises no tema claro: vazão por semana, cumprimento de SLA, gargalo por etapa e ações por papel](docs/prints/opsflow-analises-desktop.webp)
 
 ![Análises no tema escuro](docs/prints/opsflow-analises-escuro-desktop.webp)
 
-![Lista de solicitações com status, prioridade e SLA](docs/prints/opsflow-lista-solicitacoes-desktop.webp)
+![Lista de solicitações no tema claro, com status, prioridade e SLA](docs/prints/opsflow-lista-solicitacoes-desktop.webp)
 
 ![Lista no tema escuro](docs/prints/opsflow-lista-escuro-desktop.webp)
 
@@ -44,15 +46,15 @@ Desktop em 1440x900 e celular em 390x844, com os dados fictícios de exemplo.
 
 ## O que o produto faz
 
-- **Caixa de entrada por papel.** "Minhas tarefas" com contagem regressiva de SLA, filtros rápidos e salvos e atalhos `j`/`k`, `Enter`, `x`, `a`, `r`. Decidir **resolve a tarefa**: ela sai da caixa na hora, o contador e o selo caem, o SLA congela ("Decidida no prazo" ou "com 5h de atraso") e um aviso oferece **Desfazer** por 6 segundos (a decisão só é confirmada na API depois dessa janela). O que foi aprovado e falta concluir aparece no filtro "Para concluir".
-- **Aprovação em lote.** A seleção é congelada no clique, as chamadas rodam em paralelo com "Aprovando 3 de 8…" e barra de progresso, e o resultado lista o que foi pulado e por quê (item que passou do prazo no meio do caminho vira "pulado", sem abrir diálogo).
+- **Caixa de entrada por papel.** Tabela densa (linhas de 56 px) com código, solicitação, valor, prioridade e prazo de SLA (amarelo preenchido perto de vencer, borda laranja vencido), recortes com contagem, filtros salvos e atalhos `j`/`k`, `Enter`, `x`, `a`, `r`. A tarefa em foco aparece no painel de detalhe à direita (no celular, abaixo da tabela) com valor, cadeia de aprovação, as ações do papel com o atalho visível e as últimas entradas da auditoria. Decidir **resolve a tarefa**: ela sai da caixa na hora, o contador e o selo caem, o SLA congela ("Decidida no prazo" ou "com 5h de atraso") e um aviso oferece **Desfazer** por 6 segundos (a decisão só é confirmada na API depois dessa janela). O que foi aprovado e falta concluir aparece no filtro "Para concluir".
+- **Aprovação em lote.** Barra amarela com quantidade e total em mono. A seleção é congelada no clique, as chamadas rodam em paralelo com "Aprovando 3 de 8…" e barra de progresso, e o resultado lista o que foi pulado e por quê (item que passou do prazo no meio do caminho vira "pulado", sem abrir diálogo).
 - **Quadro kanban.** Arrastar com CDK DragDrop. Colunas que aceitam o movimento acendem durante o arraste; um movimento que a máquina de estados não prevê, ou que o papel não pode fazer, é bloqueado com explicação. Alternativa sem mouse: menu "Mover para" em cada cartão.
 - **Detalhe.** Cabeçalho com status e SLA, cadeia de aprovação em **Steps** (solicitação, revisão, aprovação, conclusão), ações conforme o papel, comentários em thread, anexos simulados e **Timeline** de auditoria.
 - **Nova solicitação.** Wizard em três etapas (**Steps**) com formulário reativo validado, **rascunho salvo automaticamente** (recuperado ao recarregar) e revisão antes de enviar.
 - **Análises.** Vazão por semana, cumprimento de SLA, gargalo por etapa e ações por papel, em ECharts. Todo gráfico tem versão em tabela e descrição para leitor de tela.
 - **Administração.** Matriz de permissões (RBAC) em tabela, usuários de demonstração (atuar como) e as regras do fluxo.
 - **Lista de solicitações.** Tabela com ordenação por coluna, filtros por status com contadores, paginação, busca com debounce e exportação em CSV (com proteção contra injeção de fórmula). No celular vira lista de cartões.
-- **Navegação de app.** `nz-layout` com sider recolhível, cabeçalho com busca, notificações e perfil, e trilha de navegação em cada tela. No celular, o menu vira gaveta e há barra inferior com Caixa, Quadro (ou Nova, para o Solicitante), Solicitações e **Mais** (Análises, Administração, Nova solicitação, paleta, atalhos e perfil). Paleta de comandos (`Ctrl`/`⌘` + `K`), modal de atalhos (`?`) e estado na URL (rota por hash).
+- **Navegação de app.** Barra superior com busca (atalho `/`), seletor "Ver como" (papel de demonstração), notificações e perfil; menu lateral de 210 px recolhível, com contadores em selos mono e a caixa de atalhos no rodapé; e trilha de navegação em cada tela. No celular, o menu vira gaveta e há barra inferior com Caixa, Quadro (ou Nova, para o Solicitante), Solicitações e **Mais** (Análises, Administração, Nova solicitação, paleta, atalhos e perfil). Paleta de comandos (`Ctrl`/`⌘` + `K`), modal de atalhos (`?`) e estado na URL (rota por hash).
 - **Preferências.** Papel, idioma (pt-BR e English, com plural correto), tema claro e escuro, densidade compacta ou confortável e "Simular falhas da API".
 
 ## Atalhos
@@ -136,10 +138,10 @@ Os inputs seguem o contrato de props dos wrappers React (`AppButton`: `variant`,
 
 ### Tema central
 
-- **Cores e formas:** `src/styles/overrides-light.less` e `overrides-dark.less` (variáveis do NG-ZORRO) e `src/styles/tokens.scss` (tokens CSS usados por wrappers e gráficos). Fontes IBM Plex Sans e Mono auto-hospedadas. Cantos de 6 px, base de 14 px.
-- **Claro e escuro:** a folha clara vem no `index.html`; a escura (`theme-dark.css`) só é baixada quando o tema escuro é usado, e o `UiTheme` a liga e desliga. A escolha é lembrada e respeita `prefers-color-scheme`.
+- **Cores e formas:** `src/styles/tokens.scss` traz os tokens `--ops-*` do pacote de design e os tokens semânticos `--ox-color-*` que wrappers e gráficos usam; `src/styles/overrides-dark.less` e `overrides-light.less` levam os mesmos valores às variáveis do NG-ZORRO (primário `#FFD21F` com texto `#0D0F12`, cantos de 8 px e 4 px nos selos, IBM Plex). Fontes auto-hospedadas (`@fontsource`).
+- **Escuro por padrão, claro por escolha:** a folha escura do NG-ZORRO vem no bundle; a clara (`theme-light.css`, gerada por `scripts/build-theme-light.mjs`) só é baixada quando o tema claro é escolhido, e o `UiTheme` a liga e desliga. A escolha é lembrada.
 - **Densidade:** compacta (padrão) ou confortável. Os wrappers mudam o tamanho dos controles (`middle` ou `large`) a partir do `UiTheme`.
-- **Contraste AA calculado:** o teste `theme-contrast.spec.ts` calcula a razão de cada par texto/fundo (mínimo 4,5:1) e de cada par de componente ou gráfico (mínimo 3:1) nos dois temas, e confere que as variáveis do NG-ZORRO batem com os tokens. O botão primário usa `#2a63f0` (5,07:1 com texto branco); o azul da marca `#2f6bff` dá 4,4988:1 e fica no logo e nos gráficos.
+- **Contraste AA calculado:** o teste `theme-contrast.spec.ts` calcula a razão de cada par texto/fundo (mínimo 4,5:1) e de cada par de componente ou gráfico (mínimo 3:1) nos dois temas, e confere que as variáveis do NG-ZORRO batem com os tokens. O amarelo `#FFD21F` só aparece como fundo, com texto `#0D0F12` (13,2:1); no tema claro, amarelo como texto ou traço vira `#8A6A00` (5,07:1 sobre branco), e o laranja de atraso vira `#A8441A` para passar em AA sobre o fundo rosado.
 
 ## Storybook
 
@@ -150,7 +152,7 @@ npm run build-storybook  # storybook-static/ (roda no CI)
 
 Há **129 stories em 39 arquivos** (uma ou mais por wrapper, ao lado do componente), com controles (`args`) nas props mais usadas e os estados que fazem sentido: padrão, desabilitado, carregando, erro e vazio. Rodei as 129 no build estático: todas renderizam sem erro e passam no axe (WCAG 2.1 AA).
 
-O Storybook usa o tema claro do app (tokens, fontes e folha clara do NG-ZORRO) e o addon de acessibilidade (`@storybook/addon-a11y`).
+O Storybook usa o tema escuro padrão do app (tokens, fontes e folha escura do NG-ZORRO) e o addon de acessibilidade (`@storybook/addon-a11y`).
 
 ## Arquitetura
 
@@ -236,30 +238,34 @@ O RBAC e a validação **são aplicados na API simulada**, não só na tela: o a
 - Link "Pular para o conteúdo", landmarks, títulos em ordem, rótulos em todos os campos e erros ligados ao campo (`aria-describedby`).
 - Teclado em tudo: foco sempre visível, diálogos com foco preso, `Esc` fecha e o foco volta a quem abriu. A ordenação da tabela é por botão no cabeçalho.
 - Cor nunca é o único sinal: status levam texto e ícone, SLA leva ícone e texto, prioridade leva ícone.
-- Alvos de 44 px no celular (teste E2E mede os botões e a barra inferior); sem rolagem horizontal da página.
+- Alvos de 44 px no celular (teste E2E mede os botões e a barra inferior).
+- Sem rolagem horizontal da página em 320, 375, 390, 768, 1024, 1280, 1440 e 1920 px, nos dois temas e nas 7 telas (teste E2E); tabelas largas rolam dentro da própria caixa.
 - `prefers-reduced-motion` desliga animações e contadores.
 - Regiões vivas (`LiveAnnouncer` e avisos) para resultados assíncronos.
 
 ## Testes
 
-- **323 testes unitários** (Vitest, 21 arquivos): máquina de estados, RBAC, SLA, auditoria, migração de legado, cadeia de aprovação (agora em Steps), caixa de entrada, notificações, análises, ordenação, filtros, CSV, rascunho, plural, paridade dos dicionários pt-BR e en (inclui varredura das chaves usadas nos templates) e o **contraste calculado do tema** (`theme-contrast.spec.ts`). O domínio e os testes dele não mudaram.
-- **79 testes E2E** (Playwright + axe) contra o build portátil servido em `/projetos/opsflow/`:
+- **331 testes unitários** (Vitest, 21 arquivos): máquina de estados, RBAC, SLA, auditoria, migração de legado, cadeia de aprovação (agora em Steps), caixa de entrada, notificações, análises, ordenação, filtros, CSV, rascunho, plural, paridade dos dicionários pt-BR e en (inclui varredura das chaves usadas nos templates) e o **contraste calculado do tema** (`theme-contrast.spec.ts`). O domínio e os testes dele não mudaram; no redesign o contraste ganhou pares novos (texto suave, superfície elevada, amarelo como texto) e o teste de componente da caixa de entrada passou a decidir pelo painel de detalhe.
+- **95 testes E2E** (Playwright + axe) contra o build portátil servido em `/projetos/opsflow/`:
+  - sem rolagem horizontal da página nas 7 telas, em 8 larguras (320 a 1920 px) e nos dois temas (16 testes);
   - axe com zero violações e sem rolagem horizontal em 7 telas, nos dois temas, em 360 e 1440 px (28 testes), e sem erro no console;
   - axe e geometria de 6 diálogos e gavetas (11 combinações por tema e largura): a caixa do painel cabe na janela;
-  - aprovar da caixa de entrada, desfazer, justificativa fora do prazo, comentário obrigatório, `Esc` devolvendo o foco, lote com progresso, atalhos `j`/`k`/`a`, arrastar no quadro (transição inválida bloqueada) e "Mover para", segregação de funções, auditor somente leitura, comentários, rascunho do wizard, validação e criação pelo wizard (com o seletor de data), paleta, recarregar em rota interna, inglês, menu lateral recolhido, tema escuro e a barra inferior e a gaveta do celular, com alvos de 44 px.
+  - aprovar da caixa de entrada, desfazer, justificativa fora do prazo, comentário obrigatório, `Esc` devolvendo o foco, lote com progresso, atalhos `j`/`k`/`a`, arrastar no quadro (transição inválida bloqueada) e "Mover para", segregação de funções, auditor somente leitura, comentários, rascunho do wizard, validação e criação pelo wizard (com o seletor de data), paleta, recarregar em rota interna, inglês, menu lateral recolhido, tema escuro como padrão (e a folha clara baixada só ao escolher o claro) e a barra inferior e a gaveta do celular, com alvos de 44 px.
 
 ## Desempenho
 
 Antes (design feito à mão, gráficos em SVG próprio) e depois (NG-ZORRO + ECharts), no build portátil de produção:
 
-| | Antes (design à mão) | Depois (1ª entrega NG-ZORRO) | Depois (otimizado) |
-|---|---|---|---|
-| Inicial (JS + CSS), bruto | 495 kB | 1,94 MB | **1,29 MB** |
-| Inicial, transferido | 127 kB | 326 kB | **249 kB** |
-| JS inicial (bruto / transferido) | 495 kB / 127 kB | 1,03 MB / 243 kB | 838 kB / 206 kB |
-| CSS inicial (transferido) | embutido nos componentes | 40 + 40 + 3 kB (os dois temas) | 39 + 3 kB (só o claro) |
-| Tema escuro | embutido | baixado junto, sempre | `theme-dark.css` (40 kB), só ao usar o tema escuro |
-| Maior bloco sob demanda | 68 kB (quadro) | 611 kB (análises, com o ECharts) | igual |
+| | Antes (design à mão) | Depois (1ª entrega NG-ZORRO) | Depois (otimizado) | Redesign "torre de controle" |
+|---|---|---|---|---|
+| Inicial (JS + CSS), bruto | 495 kB | 1,94 MB | 1,29 MB | **1,32 MB** |
+| Inicial, transferido | 127 kB | 326 kB | 249 kB | **252 kB** |
+| JS inicial (bruto / transferido) | 495 kB / 127 kB | 1,03 MB / 243 kB | 838 kB / 206 kB | 848 kB / 208 kB |
+| CSS inicial (transferido) | embutido nos componentes | 40 + 40 + 3 kB (os dois temas) | 39 + 3 kB (só o claro) | 40 + 4 kB (só o escuro, que é o padrão) |
+| Tema não padrão | embutido | baixado junto, sempre | `theme-dark.css` (40 kB), só ao usar o escuro | `theme-light.css` (≈40 kB), só ao usar o claro |
+| Maior bloco sob demanda | 68 kB (quadro) | 611 kB (análises, com o ECharts) | igual | igual |
+
+No redesign, o seletor "Ver como" da barra superior é um `<select>` nativo estilizado: com o Select do NG-ZORRO ele puxava o componente para o bundle inicial (262 kB transferidos); com o nativo o inicial ficou em 252 kB.
 
 O que mudou na otimização: (1) a folha do tema escuro deixou de ser baixada com a página: é compilada por `scripts/build-theme-dark.mjs` para `public/theme-dark.css` e entra por um `<link>` só quando o tema escuro é ativado (ou quando o tema salvo já é o escuro); (2) gavetas, paleta, atalhos e pedido de comentário (com o Modal, a Lista, o Form e o Empty do NG-ZORRO) viraram um bloco `@defer` carregado na primeira abertura, com `prefetch on idle`; (3) o adaptador de datas (date-fns) só entra com a rota do wizard. Conferi com `--stats-json` que `table`, `date-picker`, `steps`, `timeline` e `descriptions` já estavam fora do bundle inicial; os ícones registrados são só os usados.
 
@@ -275,7 +281,7 @@ npm start               # http://localhost:4200
 npx ng test             # testes unitários (Vitest)
 npm run lint            # ESLint (inclui a barreira de imports da UI)
 npm run build
-npm run theme:dark      # gera public/theme-dark.css (roda sozinho antes de start/build)
+npm run theme:light     # gera public/theme-light.css (roda sozinho antes de start/build)
 npm run build:portable  # dist-portable/ (base ./, rota por hash, nomes com hash)
 npm run build-storybook # storybook-static/
 npm run e2e             # Playwright + axe (usa o Chrome instalado e o build portátil; E2E_PORT muda a porta)
@@ -290,9 +296,10 @@ npm run e2e             # Playwright + axe (usa o Chrome instalado e o build por
 - Estado dos filtros da caixa de entrada e da lista na URL (hoje só a rota fica na URL; filtros salvos ficam no navegador).
 - Desfazer depois da janela de 6 s: dentro dela a decisão é adiada e pode ser cancelada; depois disso não há transição inversa na máquina de estados.
 - Anexos reais: são simulados (só o nome do arquivo é registrado).
-- Alternância de tema no Storybook: ele carrega só a folha clara do NG-ZORRO.
+- Alternância de tema no Storybook: ele carrega só a folha escura do NG-ZORRO.
+- "Rejeitar" em lote: a barra de lote só aprova. Rejeitar exige comentário por solicitação, e um comentário único para várias seria uma regra nova de negócio.
 - Teste de componente de todos os fluxos: há specs de componente para Caixa de entrada, Cadeia de aprovação e Contagem; o resto fica no E2E.
-- O `public/theme-dark.css` é gerado (`npm run theme:dark`, rodado automaticamente antes de `start`, `build` e `build:portable`) e não é versionado.
+- O `public/theme-light.css` é gerado (`npm run theme:light`, rodado automaticamente antes de `start`, `build` e `build:portable`) e não é versionado.
 - A segurança (papéis, validação, concorrência) vive na API simulada: é uma demonstração, não autenticação real.
 
 ## Licença

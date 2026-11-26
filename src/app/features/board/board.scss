@@ -4,7 +4,7 @@
 
 .board {
   display: grid;
-  grid-template-columns: repeat(6, minmax(11.5rem, 1fr));
+  grid-template-columns: repeat(6, minmax(11rem, 1fr));
   gap: 0.75rem;
   align-items: start;
   overflow-x: auto;
@@ -20,14 +20,15 @@
   --swatch: var(--ox-color-step-idle);
   display: grid;
   gap: 0.5rem;
+  min-width: 0;
   padding: 0.625rem;
-  background: var(--ox-neutral-surface);
-  border: 1px dashed transparent;
-  border-radius: 10px;
+  background: var(--ox-color-surface-sunken);
+  border: 1px solid var(--ox-color-border);
+  border-radius: var(--ox-radius-lg);
   transition: border-color 160ms, background 160ms;
 
   &[data-status='in_review'] {
-    --swatch: var(--ox-color-warning);
+    --swatch: var(--ox-color-info);
   }
   &[data-status='returned'] {
     --swatch: var(--ox-color-violet);
@@ -41,6 +42,7 @@
   }
 
   &.accepts {
+    border-style: dashed;
     border-color: var(--ox-color-success);
     background: var(--ox-color-success-surface);
   }
@@ -72,10 +74,11 @@ h2 {
 }
 
 .count {
-  padding: 0 0.5rem;
-  font-size: 0.75rem;
-  background: var(--ox-card);
-  border-radius: 999px;
+  padding: 1px 6px;
+  color: var(--ox-color-text-muted);
+  font: 600 0.75rem/1.125rem var(--ox-font-family-mono);
+  border: 1px solid var(--ox-color-border);
+  border-radius: var(--ox-radius-sm);
 }
 
 .drop {
@@ -85,7 +88,17 @@ h2 {
 }
 
 .item {
+  min-width: 0;
   cursor: grab;
+
+  ::ng-deep .ant-card {
+    background: var(--ox-color-surface-raised);
+    transition: border-color 120ms;
+  }
+
+  &:hover ::ng-deep .ant-card {
+    border-color: var(--ox-color-border-soft);
+  }
 
   &.cdk-drag-preview {
     box-shadow: var(--ox-shadow-lg);
@@ -127,19 +140,27 @@ h2 {
   display: block;
   margin-bottom: 0.375rem;
   font-weight: 600;
+  line-height: 1.3;
   color: var(--ox-color-text);
   text-decoration: none;
+  overflow-wrap: anywhere;
 
   &:hover {
-    color: var(--ox-color-accent-text);
     text-decoration: underline;
+    text-underline-offset: 2px;
   }
 }
 
 .meta,
 .foot {
+  flex-wrap: wrap;
   margin-bottom: 0.25rem;
   font-size: 0.75rem;
+}
+
+.meta .num {
+  font-family: var(--ox-font-family-mono);
+  font-weight: 500;
 }
 
 .person {

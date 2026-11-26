@@ -2,7 +2,7 @@ import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LocalDatePipe, MoneyPipe } from '../../core/i18n/format.pipes';
+import { MoneyPipe, ShortDatePipe } from '../../core/i18n/format.pipes';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { TranslationService } from '../../core/i18n/translation.service';
 import { RequestsStore } from '../../core/requests/requests.store';
@@ -13,15 +13,17 @@ import { readStorage, writeStorage } from '../../core/storage';
 import { NowService } from '../../core/time/now.service';
 import { ToastService } from '../../core/ui/toast.service';
 import { Shortcuts, isTypingTarget } from '../../core/ui/shortcuts.service';
+import { ViewportService } from '../../core/ui/viewport.service';
+import { buildApprovalChain } from '../../domain/approval-chain';
 import { InboxTask, canBatchApprove, inboxTasks } from '../../domain/inbox';
 import { evaluateSla } from '../../domain/sla';
 import { CATEGORIES, PRIORITIES, WorkflowAction } from '../../domain/request.model';
 import { ACTION_BUTTON, ACTION_ICONS } from '../../shared/action-meta';
+import { ApprovalChainList } from '../../shared/approval-chain-list';
 import { PriorityBadge, StatusBadge } from '../../shared/badges';
 import { Countdown } from '../../shared/countdown';
 import {
   AppAlert,
-  AppAvatar,
   AppButton,
   AppCard,
   AppCheckbox,
@@ -72,10 +74,9 @@ interface BatchResult {
   imports: [
     FormsModule,
     TranslatePipe,
-    LocalDatePipe,
     MoneyPipe,
+    ShortDatePipe,
     AppAlert,
-    AppAvatar,
     AppButton,
     AppCard,
     AppCheckbox,
@@ -89,6 +90,7 @@ interface BatchResult {
     AppSelect,
     AppSkeleton,
     AppTag,
+    ApprovalChainList,
     Countdown,
     PriorityBadge,
     StatusBadge,
@@ -112,6 +114,7 @@ export class Inbox {
   private readonly i18n = inject(TranslationService);
   private readonly clock = inject(NowService);
   private readonly announcer = inject(LiveAnnouncer);
+  private readonly viewport = inject(ViewportService);
 
   protected readonly presets = PRESET_FILTERS;
   protected readonly priorities = PRIORITIES;
@@ -121,6 +124,7 @@ export class Inbox {
   protected readonly role = this.session.currentRole;
   protected readonly actionIcons = ACTION_ICONS;
   protected readonly actionButton = ACTION_BUTTON;
+  protected readonly canSeeAudit = computed(() => this.session.can('audit.view'));
 
   protected readonly filter = signal<InboxFilter>(NO_FILTER);
   protected readonly saved = signal<readonly SavedFilter[]>(
@@ -169,6 +173,17 @@ export class Inbox {
       !this.saved().some((item) => sameFilter(item.filter, this.filter())),
   );
 
+  /** Quantas tarefas cada recorte mostraria agora (contadores das abas). */
+  protected readonly presetCounts = computed(() => {
+    const all = this.everything();
+    return new Map(PRESET_FILTERS.map((preset) => [preset.id, applyInboxFilter(all, preset.filter).length]));
+  });
+
+  /** Soma dos valores selecionados (só exibição, para conferir o lote antes de aprovar). */
+  protected readonly selectedTotal = computed(() =>
+    this.selectedTasks().reduce((sum, task) => sum + task.request.amount, 0),
+  );
+
   /** Tarefa em foco: a do id; se ela saiu da lista, a que ocupa o mesmo lugar. */
   protected readonly activeId = computed(() => {
     const list = this.tasks();
@@ -177,8 +192,33 @@ export class Inbox {
     return (byId ?? list[Math.min(this.lastIndex, list.length - 1)]).request.id;
   });
 
+  /** A tarefa em foco é a que aparece no painel de detalhe. */
+  protected readonly activeTask = computed(
+    () => this.tasks().find((task) => task.request.id === this.activeId()) ?? null,
+  );
+  protected readonly activeChain = computed(() => {
+    const task = this.activeTask();
+    return task ? buildApprovalChain(task.request) : [];
+  });
+  /** As três últimas entradas da auditoria, da mais antiga para a mais nova. */
+  protected readonly recentAudit = computed(() => this.activeTask()?.request.audit.slice(-3) ?? []);
+
   constructor() {
     this.store.load();
+  }
+
+  /** Mostra a tarefa no painel de detalhe; no celular, rola até ele (fica abaixo da tabela). */
+  protected show(task: InboxTask, reveal = false): void {
+    this.lastIndex = Math.max(
+      0,
+      this.tasks().findIndex((item) => item.request.id === task.request.id),
+    );
+    this.focusId.set(task.request.id);
+    if (reveal && this.viewport.mobile()) {
+      queueMicrotask(() =>
+        document.getElementById('inbox-detail')?.scrollIntoView({ block: 'start' }),
+      );
+    }
   }
 
   protected isBatchable(task: InboxTask): boolean {
@@ -349,7 +389,14 @@ export class Inbox {
         this.moveFocus(Math.max(index - 1, 0));
         break;
       case 'Enter':
-        if (event.target instanceof HTMLElement && event.target.closest('a,button')) return;
+        // No título da linha, Enter abre a solicitação completa (o clique só mostra o detalhe).
+        if (
+          event.target instanceof HTMLElement &&
+          event.target.closest('a,button') &&
+          !event.target.closest('button.title')
+        ) {
+          return;
+        }
         void this.router.navigate(['/requests', current.request.id]);
         break;
       case 'x':

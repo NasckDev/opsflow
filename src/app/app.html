@@ -1,33 +1,13 @@
 <a class="skip-link" href="#main" (click)="focusMain($event, main)">{{ 'app.skip' | t }}</a>
 
-<div class="demo-banner" role="region" [attr.aria-label]="'app.demo' | t">
-  <span class="demo-dot" aria-hidden="true"></span>
-  <strong>{{ 'app.demo' | t }}</strong>
-  <span class="demo-hint">{{ 'app.demoHint' | t }}</span>
-</div>
-
-<app-layout [mobile]="viewport.mobile()" [collapsed]="collapsed()">
+<app-layout [mobile]="viewport.mobile()" [collapsed]="collapsed()" [siderWidth]="210">
   <div appLayoutSider class="sider-body">
-    <a class="brand" href="#/inbox">
-      <app-logo />
-      @if (!collapsed()) {
-        <span class="brand-text">
-          <strong>OpsFlow</strong>
-          <small>{{ 'app.tagline' | t }}</small>
-        </span>
-      }
-    </a>
     @if (session.can('request.create')) {
       <div class="new-cta">
         @if (collapsed()) {
-          <app-icon-button
-            icon="plus"
-            variant="primary"
-            [label]="'app.nav.new' | t"
-            (click)="goNew()"
-          />
+          <app-icon-button icon="plus" [label]="'app.nav.new' | t" (click)="goNew()" />
         } @else {
-          <app-button variant="primary" icon="plus" [block]="true" (click)="goNew()">
+          <app-button icon="plus" [block]="true" (click)="goNew()">
             {{ 'app.nav.new' | t }}
           </app-button>
         }
@@ -36,23 +16,38 @@
     <nav [attr.aria-label]="'app.nav.main' | t">
       <app-menu [groups]="menu()" [selectedKey]="section()" [collapsed]="collapsed()" />
     </nav>
-    @if (!collapsed()) {
-      <p class="sidebar-foot">{{ 'app.footer' | t }}</p>
-    }
+    <div class="sider-foot">
+      @if (!collapsed()) {
+        <div class="shortcuts-box">
+          <span class="shortcuts-title">{{ 'app.shortcuts.title' | t }}</span>
+          <span class="shortcuts-line"><kbd>J</kbd><kbd>K</kbd>{{ 'app.shortcuts.move' | t }}</span>
+          <span class="shortcuts-line">
+            <kbd>A</kbd>{{ 'app.shortcuts.approve' | t }}<kbd>R</kbd>{{ 'app.shortcuts.reject' | t }}
+          </span>
+          <button type="button" class="shortcuts-all" (click)="openHelp()">
+            {{ 'app.shortcuts.all' | t }} <kbd>?</kbd>
+          </button>
+        </div>
+        <p class="demo-note"><span class="demo-dot" aria-hidden="true"></span>{{ 'app.demo' | t }}</p>
+      }
+      <app-icon-button
+        class="collapse-toggle"
+        [icon]="collapsed() ? 'menu-unfold' : 'menu-fold'"
+        [label]="(collapsed() ? 'app.menu.expand' : 'app.menu.collapse') | t"
+        (click)="toggleSider()"
+      />
+    </div>
   </div>
 
   <div appLayoutHeader class="header-row" role="banner">
-    <app-icon-button
-      [icon]="viewport.mobile() ? 'menu' : collapsed() ? 'menu-unfold' : 'menu-fold'"
-      [label]="(viewport.mobile() ? 'app.menu.open' : collapsed() ? 'app.menu.expand' : 'app.menu.collapse') | t"
-      (click)="toggleSider()"
-    />
     @if (viewport.mobile()) {
-      <a class="brand brand-mobile" href="#/inbox" aria-label="OpsFlow">
-        <app-logo />
-        <strong>OpsFlow</strong>
-      </a>
-    } @else {
+      <app-icon-button icon="menu" [label]="'app.menu.open' | t" (click)="toggleSider()" />
+    }
+    <a class="brand" href="#/inbox">
+      <app-logo />
+      <strong>OpsFlow</strong>
+    </a>
+    @if (!viewport.mobile()) {
       <div class="search" data-global-search>
         <app-input
           type="search"
@@ -64,17 +59,24 @@
           [ngModel]="search.query()"
           (ngModelChange)="onSearch($event)"
         />
+        @if (!search.query()) {
+          <kbd class="search-key" aria-hidden="true">/</kbd>
+        }
       </div>
     }
     <span class="spacer"></span>
-    @if (!viewport.mobile()) {
-      <app-button icon="search" (click)="openPalette()">
-        {{ 'palette.open' | t }} <kbd>Ctrl K</kbd>
-      </app-button>
-    } @else {
-      <span class="role-pill">{{ 'role.' + session.currentRole() | t }}</span>
-    }
-    <app-badge [count]="notificationCount()">
+    <label class="view-as">
+      <span class="view-as-label">{{ 'app.viewAs' | t }}</span>
+      <!-- Select nativo: leve no carregamento inicial (o Select do NG-ZORRO fica nas rotas). -->
+      <select class="view-as-select" [value]="session.currentRole()" (change)="onRole($any($event.target).value)">
+        @for (option of roleOptions(); track option.value) {
+          <option [value]="option.value" [selected]="option.value === session.currentRole()">
+            {{ option.label }}
+          </option>
+        }
+      </select>
+    </label>
+    <app-badge [count]="notificationCount()" [dot]="true">
       <app-icon-button
         icon="bell"
         haspopup="dialog"
@@ -93,10 +95,7 @@
       >
         <app-avatar [name]="session.actor().name" />
         <span class="visually-hidden">{{ 'app.profile' | t }}:</span>
-        <span class="profile-text">
-          <strong>{{ session.actor().name }}</strong>
-          <small>{{ 'role.' + session.currentRole() | t }}</small>
-        </span>
+        <strong class="profile-name">{{ session.actor().name }}</strong>
       </button>
     }
   </div>

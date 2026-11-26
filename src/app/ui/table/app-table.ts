@@ -102,8 +102,11 @@ export class AppTableCell {
     <ng-template #emptyTpl><ng-content select="[appTableEmpty]" /></ng-template>
   `,
   styles: `
+    /* Tabela larga rola dentro da própria caixa, nunca a página. */
     :host {
       display: block;
+      max-width: 100%;
+      overflow-x: auto;
     }
   `,
 })

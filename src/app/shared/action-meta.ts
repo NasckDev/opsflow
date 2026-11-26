@@ -13,14 +13,18 @@ export const ACTION_ICONS: Readonly<Record<AuditAction, UiIconName>> = {
   complete: 'check',
 };
 
-/** Variante do botão de cada ação: aprovar é verde, rejeitar é vermelho, o resto é primário ou neutro. */
+/**
+ * Variante do botão de cada ação. Aprovar, enviar e concluir usam o amarelo de sinalização (só uma
+ * delas aparece por solicitação, então nunca há dois botões amarelos na mesma área); rejeitar tem
+ * contorno laranja e devolver é neutro.
+ */
 export const ACTION_BUTTON: Readonly<
   Record<WorkflowAction, { variant: 'primary' | 'default'; tone: 'default' | 'success'; danger: boolean }>
 > = {
   submit: { variant: 'primary', tone: 'default', danger: false },
   resubmit: { variant: 'primary', tone: 'default', danger: false },
   complete: { variant: 'primary', tone: 'default', danger: false },
-  approve: { variant: 'primary', tone: 'success', danger: false },
+  approve: { variant: 'primary', tone: 'default', danger: false },
   reject: { variant: 'default', tone: 'default', danger: true },
   return: { variant: 'default', tone: 'default', danger: false },
 };

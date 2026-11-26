@@ -46,6 +46,19 @@ async function expectInsideViewport(page: Page, locator: Locator) {
 
 const toast = (page: Page) => page.locator('.ant-message');
 
+/** Mostra a tarefa no painel de detalhe da caixa de entrada e devolve o painel. */
+async function showTask(page: Page, text: string | RegExp) {
+  await page
+    .getByTestId('inbox-list')
+    .locator('tr.task')
+    .filter({ hasText: text })
+    .locator('button.title')
+    .click();
+  const detail = page.getByTestId('inbox-detail');
+  await expect(detail).toContainText(text);
+  return detail;
+}
+
 const SCREENS: readonly { name: string; hash: string; ready: string; role?: Role }[] = [
   { name: 'caixa de entrada', hash: '/inbox', ready: '[data-testid="inbox-list"]' },
   { name: 'solicitações', hash: '/requests', ready: '[data-testid="request-list"], .req-card' },
@@ -84,6 +97,30 @@ test.describe('acessibilidade (axe, WCAG 2.2 AA) e sem rolagem horizontal', () =
   }
 });
 
+/** Larguras de conferência do layout: nada cortado, sobreposto ou com rolagem horizontal da página. */
+const LAYOUT_WIDTHS = [320, 375, 390, 768, 1024, 1280, 1440, 1920] as const;
+
+test.describe('sem rolagem horizontal da página em todas as larguras', () => {
+  for (const width of LAYOUT_WIDTHS) {
+    for (const theme of ['light', 'dark'] as const) {
+      test(`todas as telas · ${width} px · tema ${theme}`, async ({ page }) => {
+        test.setTimeout(150_000);
+        await page.setViewportSize({ width, height: 900 });
+        for (const screen of SCREENS) {
+          await open(page, screen.hash, screen.role ?? 'approver', theme);
+          await page.reload();
+          await page.waitForSelector(screen.ready, { state: 'attached' });
+          await page.waitForTimeout(300);
+          const overflow = await page.evaluate(
+            () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          );
+          expect(overflow, `${screen.name} em ${width} px`).toBeLessThanOrEqual(0);
+        }
+      });
+    }
+  }
+});
+
 interface Overlay {
   readonly name: string;
   readonly kind: 'modal' | 'drawer';
@@ -96,7 +133,7 @@ const OVERLAYS: readonly Overlay[] = [
     name: 'diálogo de comentário obrigatório',
     kind: 'modal',
     open: async (page) => {
-      await page.waitForSelector('li.task');
+      await page.waitForSelector('tr.task');
       await page.getByRole('button', { name: 'Rejeitar' }).first().click();
     },
   },
@@ -104,7 +141,7 @@ const OVERLAYS: readonly Overlay[] = [
     name: 'paleta de comandos',
     kind: 'modal',
     open: async (page) => {
-      await page.waitForSelector('li.task');
+      await page.waitForSelector('tr.task');
       await page.keyboard.press('Control+k');
     },
   },
@@ -112,7 +149,7 @@ const OVERLAYS: readonly Overlay[] = [
     name: 'atalhos de teclado',
     kind: 'modal',
     open: async (page) => {
-      await page.waitForSelector('li.task');
+      await page.waitForSelector('tr.task');
       await page.keyboard.press('?');
     },
   },
@@ -120,7 +157,7 @@ const OVERLAYS: readonly Overlay[] = [
     name: 'gaveta de notificações',
     kind: 'drawer',
     open: async (page) => {
-      await page.waitForSelector('li.task');
+      await page.waitForSelector('tr.task');
       await page.getByRole('button', { name: 'Notificações' }).click();
     },
   },
@@ -128,7 +165,7 @@ const OVERLAYS: readonly Overlay[] = [
     name: 'gaveta de perfil',
     kind: 'drawer',
     open: async (page, mobile) => {
-      await page.waitForSelector('li.task');
+      await page.waitForSelector('tr.task');
       if (mobile) {
         await page.getByRole('button', { name: 'Mais' }).click();
         await page.getByRole('button', { name: /Perfil de demonstração/ }).click();
@@ -142,7 +179,7 @@ const OVERLAYS: readonly Overlay[] = [
     kind: 'drawer',
     mobileOnly: true,
     open: async (page) => {
-      await page.waitForSelector('li.task');
+      await page.waitForSelector('tr.task');
       await page.getByRole('button', { name: 'Mais' }).click();
     },
   },
@@ -178,46 +215,40 @@ test.describe('fluxo de aprovação', () => {
     await open(page, '/inbox');
     const list = page.getByTestId('inbox-list');
     await expect(list).toBeVisible();
-    const before = await list.locator('li.task').count();
-    const badge = page.locator('.sider-body .app-menu-badge');
+    const before = await list.locator('tr.task').count();
+    const badge = page.locator('.sider-body .app-menu-badge-signal');
     await expect(badge).toHaveText(String(before));
-    const task = list.locator('li.task').filter({ hasText: 'Conferência QCon' });
-    await task.getByRole('button', { name: 'Aprovar' }).click();
+    const detail = await showTask(page, 'Conferência QCon');
+    await detail.getByRole('button', { name: 'Aprovar' }).click();
     await expect(toast(page).getByText(/OPS-0004 aprovada/)).toBeVisible();
     await expect(toast(page).getByRole('button', { name: 'Desfazer' })).toBeVisible();
-    await expect(list.locator('li.task')).toHaveCount(before - 1);
+    await expect(list.locator('tr.task')).toHaveCount(before - 1);
     await expect(badge).toHaveText(String(before - 1));
-    // Aprovada, ela só aparece no filtro "Para concluir".
+    // Aprovada, ela só aparece no filtro "Para concluir", agora com a ação de concluir.
     await page.getByRole('button', { name: /Para concluir/ }).click();
-    await expect(
-      list
-        .locator('li.task')
-        .filter({ hasText: 'Conferência QCon' })
-        .getByRole('button', { name: 'Concluir' }),
-    ).toBeVisible();
+    const concluded = await showTask(page, 'Conferência QCon');
+    await expect(concluded.getByRole('button', { name: 'Concluir' })).toBeVisible();
   });
 
   test('desfazer devolve a tarefa à caixa antes de a decisão ser confirmada', async ({ page }) => {
     await open(page, '/inbox');
     const list = page.getByTestId('inbox-list');
     await expect(list).toBeVisible();
-    const before = await list.locator('li.task').count();
-    await list
-      .locator('li.task')
-      .filter({ hasText: 'Conferência QCon' })
-      .getByRole('button', { name: 'Aprovar' })
-      .click();
-    await expect(list.locator('li.task')).toHaveCount(before - 1);
+    const before = await list.locator('tr.task').count();
+    const detail = await showTask(page, 'Conferência QCon');
+    await detail.getByRole('button', { name: 'Aprovar' }).click();
+    await expect(list.locator('tr.task')).toHaveCount(before - 1);
     await toast(page).getByRole('button', { name: 'Desfazer' }).click();
-    await expect(list.locator('li.task')).toHaveCount(before);
+    await expect(list.locator('tr.task')).toHaveCount(before);
     await expect(toast(page).getByText('ação desfeita')).toBeVisible();
   });
 
   test('aprovar fora do prazo explica o atraso e pede a justificativa', async ({ page }) => {
     await open(page, '/inbox');
-    const late = page.getByTestId('inbox-list').locator('li.task[data-sla="breached"]').first();
+    const late = page.getByTestId('inbox-list').locator('tr.task[data-sla="breached"]').first();
     await expect(late.getByText('aprove com justificativa')).toBeVisible();
-    await late.getByRole('button', { name: 'Aprovar' }).click();
+    await late.locator('button.title').click();
+    await page.getByTestId('inbox-detail').getByRole('button', { name: 'Aprovar' }).click();
     const dialog = page.locator('.ant-modal:visible');
     await expect(dialog).toContainText('passou do prazo há');
     await dialog.getByRole('button', { name: 'Aprovar com justificativa' }).click();
@@ -267,16 +298,19 @@ test.describe('fluxo de aprovação', () => {
 
   test('atalhos j/k movem o foco real e "a" aprova a tarefa em foco', async ({ page }) => {
     await open(page, '/inbox');
-    await page.waitForSelector('li.task');
+    await page.waitForSelector('tr.task');
     for (let step = 0; step < 10; step += 1) {
       await page.keyboard.press('j');
-      const sla = await page.locator('li.task.focused').getAttribute('data-sla');
+      const sla = await page.locator('tr.task.focused').getAttribute('data-sla');
       if (sla && sla !== 'breached') break;
     }
-    const focused = page.locator('li.task.focused');
+    const focused = page.locator('tr.task.focused');
     await expect(focused).toHaveCount(1);
     await expect(focused).toHaveAttribute('aria-current', 'true');
-    await expect(focused.locator('a.title')).toBeFocused();
+    await expect(focused.locator('button.title')).toBeFocused();
+    // O painel de detalhe acompanha a tarefa em foco.
+    const code = (await focused.locator('.code').innerText()).trim();
+    await expect(page.getByTestId('inbox-detail')).toContainText(code);
     const id = await focused.getAttribute('id');
     await page.keyboard.press('a');
     await expect(toast(page).getByRole('button', { name: 'Desfazer' })).toBeVisible();
@@ -285,11 +319,11 @@ test.describe('fluxo de aprovação', () => {
 
   test('atalhos ficam desligados com o painel de perfil aberto', async ({ page }) => {
     await open(page, '/inbox');
-    await page.waitForSelector('li.task');
+    await page.waitForSelector('tr.task');
     await page.locator('.profile-trigger').click();
     await expect(page.locator('.ant-drawer-open .ant-drawer-content-wrapper')).toBeVisible();
     await page.keyboard.press('j');
-    await expect(page.locator('li.task.focused')).toHaveCount(0);
+    await expect(page.locator('tr.task.focused')).toHaveCount(0);
   });
 });
 
@@ -418,7 +452,7 @@ test.describe('wizard, paleta e navegação', () => {
 
   test('paleta de comandos (Ctrl+K) navega e o perfil volta o foco ao fechar', async ({ page }) => {
     await open(page, '/inbox');
-    await page.waitForSelector('li.task');
+    await page.waitForSelector('tr.task');
     await page.keyboard.press('Control+k');
     const palette = page.locator('.ant-modal:visible');
     await expect(palette).toBeVisible();
@@ -456,17 +490,25 @@ test.describe('wizard, paleta e navegação', () => {
     await expect(page).toHaveURL(/#\/board/);
   });
 
-  test('tema escuro aplica a folha escura do NG-ZORRO e persiste', async ({ page }) => {
-    await open(page, '/inbox', 'approver', 'dark');
-    await page.waitForSelector('li.task');
+  test('o tema escuro é o padrão e o claro baixa a folha clara do NG-ZORRO', async ({ page }) => {
+    await page.goto('./#/inbox');
+    await page.waitForSelector('tr.task');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    expect(background).toBe('rgb(17, 20, 24)');
-    const sider = await page.evaluate(
-      () =>
-        getComputedStyle(document.querySelector('.ant-layout-sider') as Element).backgroundColor,
+    const dark = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(dark).toBe('rgb(13, 15, 18)');
+    await expect(page.locator('#ox-theme-light')).toHaveCount(0);
+
+    await open(page, '/inbox', 'approver', 'light');
+    await page.reload();
+    await page.waitForSelector('tr.task');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(page.locator('#ox-theme-light')).toHaveCount(1);
+    const light = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(light).toBe('rgb(244, 245, 247)');
+    const card = await page.evaluate(
+      () => getComputedStyle(document.querySelector('.ant-select-selector') as Element).backgroundColor,
     );
-    expect(sider).toBe('rgb(13, 16, 19)');
+    expect(card).toBe('rgb(255, 255, 255)');
   });
 });
 
@@ -509,7 +551,7 @@ test.describe('celular', () => {
 
   test('alvos de toque têm pelo menos 44 px nos botões e na barra inferior', async ({ page }) => {
     await open(page, '/inbox');
-    await page.waitForSelector('li.task');
+    await page.waitForSelector('tr.task');
     const small = await page.evaluate(() =>
       Array.from(
         document.querySelectorAll<HTMLElement>(

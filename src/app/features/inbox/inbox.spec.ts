@@ -26,7 +26,7 @@ async function render() {
   return fixture;
 }
 
-const rows = (root: HTMLElement) => root.querySelectorAll<HTMLElement>('li.task');
+const rows = (root: HTMLElement) => root.querySelectorAll<HTMLElement>('tr.task');
 
 describe('Inbox component', () => {
   beforeEach(() => vi.useFakeTimers());
@@ -49,7 +49,12 @@ describe('Inbox component', () => {
     const row = Array.from(rows(root)).find((item) =>
       item.textContent?.includes('Conferência QCon'),
     );
-    const approve = Array.from(row?.querySelectorAll('button') ?? []).find((button) =>
+    // A linha mostra a tarefa no painel de detalhe; a decisão fica no painel.
+    row?.querySelector<HTMLButtonElement>('button.title')?.click();
+    fixture.detectChanges();
+    const detail = root.querySelector<HTMLElement>('[data-testid="inbox-detail"]');
+    expect(detail?.textContent).toContain('Conferência QCon');
+    const approve = Array.from(detail?.querySelectorAll('button') ?? []).find((button) =>
       button.textContent?.includes('Aprovar'),
     );
     approve?.click();
@@ -66,7 +71,7 @@ describe('Inbox component', () => {
 
   it('marks overdue tasks as needing a justification and keeps them out of the batch', async () => {
     const root = (await render()).nativeElement as HTMLElement;
-    const overdue = root.querySelector<HTMLElement>('li.task[data-sla="breached"]');
+    const overdue = root.querySelector<HTMLElement>('tr.task[data-sla="breached"]');
     expect(overdue?.textContent).toContain('aprove com justificativa');
     expect(overdue?.querySelector('input[type="checkbox"]')).toBeNull();
   });
