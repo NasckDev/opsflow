@@ -25,7 +25,9 @@
   background: var(--ox-color-surface-sunken);
   border: 1px solid var(--ox-color-border);
   border-radius: var(--ox-radius-lg);
-  transition: border-color 160ms, background 160ms;
+  transition:
+    border-color 160ms,
+    background 160ms;
 
   &[data-status='in_review'] {
     --swatch: var(--ox-color-info);
@@ -188,4 +190,36 @@ h2 {
 
 .cdk-drag-placeholder {
   opacity: 0.4;
+}
+
+/* Abas das colunas no celular: quebram linha em vez de esconder colunas atrás de "…". */
+.column-tabs {
+  ::ng-deep .ant-tabs-nav-wrap {
+    overflow: visible;
+  }
+
+  ::ng-deep .ant-tabs-nav-list {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    transform: none !important;
+  }
+
+  ::ng-deep .ant-tabs-nav-operations,
+  ::ng-deep .ant-tabs-ink-bar {
+    display: none !important;
+  }
+
+  ::ng-deep .ant-tabs-tab {
+    margin: 0 !important;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--ox-radius-md);
+  }
+
+  ::ng-deep .ant-tabs-tab-active {
+    background: var(--ox-tab-active);
+  }
+
+  ::ng-deep .ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: var(--ox-color-text);
+  }
 }

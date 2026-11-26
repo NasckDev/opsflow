@@ -82,12 +82,16 @@
             <app-button htmlType="submit">{{ 'inbox.save' | t }}</app-button>
           </form>
         } @else {
-          <app-button icon="star" (click)="naming.set(true)">{{ 'inbox.saveFilter' | t }}</app-button>
+          <app-button icon="star" (click)="naming.set(true)">{{
+            'inbox.saveFilter' | t
+          }}</app-button>
         }
       }
       <span class="refine-end">
         <span class="muted" role="status">{{ 'inbox.count' | t: { count: tasks().length } }}</span>
-        <app-button variant="text" icon="reload" (click)="retry()">{{ 'inbox.refresh' | t }}</app-button>
+        <app-button variant="text" icon="reload" (click)="retry()">{{
+          'inbox.refresh' | t
+        }}</app-button>
       </span>
     </div>
 
@@ -95,13 +99,22 @@
       <div class="batch-bar" role="region" [attr.aria-label]="'inbox.batch' | t">
         @if (batch(); as progress) {
           <div class="progress" role="status">
-            <span>{{ 'inbox.batchProgress' | t: { done: progress.done, total: progress.total } }}</span>
-            <app-progress [value]="progress.done" [max]="progress.total" [label]="'inbox.batch' | t" />
+            <span>{{
+              'inbox.batchProgress' | t: { done: progress.done, total: progress.total }
+            }}</span>
+            <app-progress
+              [value]="progress.done"
+              [max]="progress.total"
+              [label]="'inbox.batch' | t"
+            />
           </div>
         } @else {
           <div class="summary">
             <strong>{{ 'inbox.selected' | t: { count: selected().size } }}</strong>
-            <span class="total">{{ 'inbox.selectedTotal' | t }} <b class="mono">{{ selectedTotal() | money }}</b></span>
+            <span class="total"
+              >{{ 'inbox.selectedTotal' | t }}
+              <b class="mono">{{ selectedTotal() | money }}</b></span
+            >
             @if (willSkip() > 0) {
               <small>{{ 'inbox.willSkip' | t: { count: willSkip() } }}</small>
             }
@@ -126,12 +139,23 @@
         <div role="status">
           <p class="result-line">
             <app-icon [name]="result.skipped.length ? 'info-circle' : 'check-circle'" />
-            {{ 'inbox.batchSummary' | t: { approved: result.approved, skipped: result.skipped.length, remaining: todoCount() } }}
+            {{
+              'inbox.batchSummary'
+                | t
+                  : {
+                      approved: result.approved,
+                      skipped: result.skipped.length,
+                      remaining: todoCount(),
+                    }
+            }}
           </p>
           @if (result.skipped.length) {
             <ul class="skipped">
               @for (item of result.skipped; track item.code) {
-                <li><span class="mono">{{ item.code }}</span> {{ 'inbox.skippedReason.' + item.reason | t }}</li>
+                <li>
+                  <span class="mono">{{ item.code }}</span>
+                  {{ 'inbox.skippedReason.' + item.reason | t }}
+                </li>
               }
             </ul>
           }
@@ -143,8 +167,14 @@
     <div class="results">
       @switch (status()) {
         @case ('error') {
-          <app-result status="error" [title]="'list.error.title' | t" [description]="'list.error.hint' | t">
-            <app-button variant="primary" icon="reload" (click)="retry()">{{ 'list.retry' | t }}</app-button>
+          <app-result
+            status="error"
+            [title]="'list.error.title' | t"
+            [description]="'list.error.hint' | t"
+          >
+            <app-button variant="primary" icon="reload" (click)="retry()">{{
+              'list.retry' | t
+            }}</app-button>
           </app-result>
         }
         @case ('loaded') {
@@ -155,12 +185,19 @@
                 [description]="(everything().length ? 'list.empty.hint' : 'inbox.empty.hint') | t"
               >
                 @if (!isActive(presets[0].filter)) {
-                  <app-button (click)="applyFilter(presets[0].filter)">{{ 'list.clear' | t }}</app-button>
+                  <app-button (click)="applyFilter(presets[0].filter)">{{
+                    'list.clear' | t
+                  }}</app-button>
                 }
               </app-empty>
             </app-card>
           } @else {
-            <div class="table-wrap" tabindex="0" role="region" [attr.aria-label]="'inbox.title' | t">
+            <div
+              class="table-wrap"
+              tabindex="0"
+              role="region"
+              [attr.aria-label]="'inbox.title' | t"
+            >
               <table class="tasks" data-testid="inbox-list">
                 <thead>
                   <tr>
@@ -170,6 +207,7 @@
                         (ngModelChange)="toggleAll($event)"
                         [ariaLabel]="'inbox.selectAll' | t"
                       />
+                      <span class="pick-label" aria-hidden="true">{{ 'inbox.selectAll' | t }}</span>
                     </th>
                     <th scope="col">{{ 'inbox.col.code' | t }}</th>
                     <th scope="col">{{ 'inbox.col.request' | t }}</th>
@@ -187,7 +225,9 @@
                       [class.focused]="keyboardMode() && task.request.id === activeId()"
                       [class.selected]="selected().has(task.request.id)"
                       [attr.data-sla]="task.sla.state"
-                      [attr.aria-current]="keyboardMode() && task.request.id === activeId() ? 'true' : null"
+                      [attr.aria-current]="
+                        keyboardMode() && task.request.id === activeId() ? 'true' : null
+                      "
                       (click)="show(task)"
                     >
                       <td class="pick">
@@ -217,7 +257,9 @@
                         </span>
                         @if (needsJustification(task)) {
                           <span class="needs">
-                            <app-icon name="exclamation-circle" [size]="0.8125" />{{ 'inbox.needsJustification' | t }}
+                            <app-icon name="exclamation-circle" [size]="0.8125" />{{
+                              'inbox.needsJustification' | t
+                            }}
                           </span>
                         }
                       </td>
@@ -309,7 +351,9 @@
           <h3 id="audit-title">{{ 'inbox.detail.audit' | t }}</h3>
           <dl>
             @for (entry of recentAudit(); track entry.id) {
-              <dt><time [attr.datetime]="entry.at">{{ entry.at | shortDate }}</time></dt>
+              <dt>
+                <time [attr.datetime]="entry.at">{{ entry.at | shortDate }}</time>
+              </dt>
               <dd>{{ 'action.' + entry.action | t }} · {{ entry.actor }}</dd>
             }
           </dl>

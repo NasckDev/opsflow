@@ -40,11 +40,11 @@
   border: 1px solid var(--ox-color-border);
   border-radius: var(--ox-radius-md);
 
+  /* No celular as abas quebram linha (nada de rolagem lateral nem texto cortado). */
   @media (max-width: 767px) {
-    flex-wrap: nowrap;
+    display: flex;
     min-width: 0;
     max-width: 100%;
-    overflow-x: auto;
   }
 }
 
@@ -436,5 +436,131 @@
 
   dd {
     margin: 0;
+  }
+}
+
+.pick-label {
+  display: none;
+}
+
+/* Abaixo de 768 px cada linha vira um cartão empilhado: nada rola de lado nem fica cortado. */
+@media (max-width: 767px) {
+  .table-wrap {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .tasks {
+    display: block;
+    min-width: 0;
+
+    thead,
+    tbody {
+      display: block;
+    }
+
+    thead tr {
+      display: flex;
+      padding-bottom: 0.625rem;
+    }
+
+    thead th {
+      display: none;
+    }
+
+    thead th.pick {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      width: auto;
+      padding: 0;
+      background: none;
+    }
+
+    tbody {
+      display: grid;
+      gap: 0.625rem;
+    }
+
+    td {
+      display: block;
+      width: auto;
+      height: auto;
+      padding: 0;
+    }
+
+    th.pick,
+    td.pick,
+    td:last-child {
+      width: auto;
+      padding: 0;
+    }
+  }
+
+  .pick-label {
+    display: inline;
+    color: var(--ox-color-text);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .task {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'pick code sla'
+      'req req req'
+      'prio prio amount';
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.75rem 0.875rem;
+    background: var(--ox-color-surface-raised);
+    border: 1px solid var(--ox-color-border);
+    border-radius: var(--ox-radius-lg);
+
+    td.pick {
+      grid-area: pick;
+    }
+
+    td.code {
+      grid-area: code;
+    }
+
+    /* Sem caixa de seleção (tarefa fora do lote), o código ocupa o começo da linha. */
+    td.pick:empty {
+      display: none;
+    }
+
+    td.pick:empty + td.code {
+      grid-column: 1 / 3;
+    }
+
+    td.sla {
+      grid-area: sla;
+    }
+
+    td.req {
+      grid-area: req;
+      min-width: 0;
+    }
+
+    td.prio {
+      grid-area: prio;
+    }
+
+    td.amount {
+      grid-area: amount;
+    }
+  }
+
+  .title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .meta,
+  .needs {
+    overflow-wrap: anywhere;
   }
 }

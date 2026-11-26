@@ -121,6 +121,67 @@ test.describe('sem rolagem horizontal da página em todas as larguras', () => {
   }
 });
 
+/** Abaixo de 768 px a caixa de entrada vira cartões: nada rola de lado nem fica cortado. */
+const CARD_WIDTHS = [320, 375, 390, 414, 600, 767] as const;
+
+test.describe('caixa de entrada no celular: cartões sem texto cortado', () => {
+  for (const width of CARD_WIDTHS) {
+    for (const theme of ['light', 'dark'] as const) {
+      test(`cartões · ${width} px · tema ${theme}`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 844 });
+        await open(page, '/inbox', 'approver', theme);
+        await page.waitForSelector('tr.task');
+        const problems = await page.evaluate(() => {
+          const found: string[] = [];
+          const wrap = document.querySelector<HTMLElement>('.table-wrap');
+          if (!wrap) return ['sem a caixa da lista'];
+          if (wrap.scrollWidth > wrap.clientWidth + 1) {
+            found.push(`a lista rola ${wrap.scrollWidth - wrap.clientWidth} px de lado`);
+          }
+          const limit = wrap.getBoundingClientRect().right + 1;
+          const selector = [
+            '.title',
+            '.meta',
+            '.needs',
+            '.code',
+            '.amount',
+            'app-countdown',
+            'app-priority',
+          ]
+            .map((part) => `tr.task ${part}`)
+            .join(', ');
+          for (const element of Array.from(document.querySelectorAll<HTMLElement>(selector))) {
+            const box = element.getBoundingClientRect();
+            if (box.right > limit || element.scrollWidth > element.clientWidth + 1) {
+              found.push(element.textContent?.trim() ?? element.className);
+            }
+          }
+          return found;
+        });
+        expect(problems).toEqual([]);
+        await expectNoHorizontalScroll(page);
+      });
+    }
+  }
+});
+
+test('quadro no celular: todas as abas de coluna aparecem inteiras (320 px)', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 780 });
+  await open(page, '/board');
+  await page.waitForSelector('.column-tabs .ant-tabs-tab');
+  const tabs = await page.evaluate(() =>
+    Array.from(document.querySelectorAll<HTMLElement>('.column-tabs .ant-tabs-tab')).map((tab) => {
+      const box = tab.getBoundingClientRect();
+      return { text: tab.textContent?.trim() ?? '', visible: box.width > 0, right: box.right };
+    }),
+  );
+  expect(tabs).toHaveLength(6);
+  for (const tab of tabs) {
+    expect(tab.visible, tab.text).toBe(true);
+    expect(tab.right, tab.text).toBeLessThanOrEqual(320);
+  }
+});
+
 interface Overlay {
   readonly name: string;
   readonly kind: 'modal' | 'drawer';
@@ -506,7 +567,8 @@ test.describe('wizard, paleta e navegação', () => {
     const light = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     expect(light).toBe('rgb(244, 245, 247)');
     const card = await page.evaluate(
-      () => getComputedStyle(document.querySelector('.ant-select-selector') as Element).backgroundColor,
+      () =>
+        getComputedStyle(document.querySelector('.ant-select-selector') as Element).backgroundColor,
     );
     expect(card).toBe('rgb(255, 255, 255)');
   });
